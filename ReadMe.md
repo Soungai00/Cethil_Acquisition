@@ -4,7 +4,7 @@
 
 1. Pilotage d'un instrument avec pymodaq
 2. Utilisation de l'API xpmgr (Metadata)
-3. Ecriture des données dans Influxdb
+3. Ecriture des données dans Influxdb (Mesures)
 4. Génération de jeux de données
 
 ## Versionnage (GIT)
