@@ -16,6 +16,7 @@ On va noter au fur et à mesure les tests unitaires dont on aura besoin pour val
 ## Environement Virtuel
 
 De préférence on utilisera conda pour faciliter l'interaction avec les chercheurs.
+Pour l'utilisation de conda en console, il est préférable d'utiliser 'Anaconda Prompt'.
 
 ## Documentation (Sphinx)
 
