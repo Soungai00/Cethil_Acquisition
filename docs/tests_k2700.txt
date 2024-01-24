@@ -1,0 +1,18 @@
+Test avec dashboard :
+=> gros crash 
+
+Test avec daqviewer :
+
+config par défaut Master
+
+Init_detector bouton :
+ne marche pas avec message : Detector initialzed false
+
+Par contre :
+dans sous menu : Keithley2210 Parameters
+lors du changement de Mode en R2W ou VDC => l'appareil se met en remote et le changement de mesure se fait
+
+Par contre il n'y a a pas de valeur sur le graph
+=> mais ca c'est normal tant que le détector n'est pas bien initialisé 
+ 
+

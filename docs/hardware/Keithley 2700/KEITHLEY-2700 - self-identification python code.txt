@@ -1,0 +1,8 @@
+import pyvisa
+rm = pyvisa.ResourceManager()			# Définitions cmd de ressources (quel type de ressources ?)
+rm.list_resources()
+
+('ASRL1::INSTR', 'ASRL2::INSTR', 'GPIB0::12::INSTR')   # Exemple avec Keithley Multimeter, GPIB number 12
+
+inst = rm.open_resource('GPIB0::12::INSTR')			# Accès aux ressources
+print(inst.query("*IDN?"))
