@@ -1,0 +1,2 @@
+toml
+pymodaq>=4.0.0
