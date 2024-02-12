@@ -1,25 +1,17 @@
 import numpy as np
+from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataFromPlugins, Axis, DataToExport
+from pymodaq.utils.data import DataFromPlugins, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter import Parameter
+from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithley2700
 
 
-class PythonWrapperOfYourInstrument:
-    #  TODO Replace this fake class with the import of the real python wrapper of your instrument
-    pass
-
-# TODO:
-# (1) change the name of the following class to DAQ_1DViewer_TheNameOfYourChoice
-# (2) change the name of this file to daq_1Dviewer_TheNameOfYourChoice ("TheNameOfYourChoice" should be the SAME
-#     for the class name and the file name.)
-# (3) this file should then be put into the right folder, namely IN THE FOLDER OF THE PLUGIN YOU ARE DEVELOPING:
-#     pymodaq_plugins_my_plugin/daq_viewer_plugins/plugins_1D
-class DAQ_1DViewer_Template(DAQ_Viewer_base):
-    """ Instrument plugin class for a 1D viewer.
+class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
+    """ Keithley 2700 plugin class for a OD viewer.
     
     This object inherits all functionalities to communicate with PyMoDAQ’s DAQ_Viewer module through inheritance via
-    DAQ_Viewer_base. It makes a bridge between the DAQ_Viewer module and the Python wrapper of a particular instrument.
+    DAQ_Viewer_base. It makes a bridge between the DAQ_Viewer module and the Python wrapper of a the keithley 2700.
 
     TODO Complete the docstring of your plugin with:
         * The set of instruments that should be compatible with this instrument plugin.
@@ -37,20 +29,23 @@ class DAQ_1DViewer_Template(DAQ_Viewer_base):
     # TODO add your particular attributes here if any
 
     """
+
     params = comon_parameters+[
-        ## TODO for your custom plugin
-        # elements to be added here as dicts in order to control your custom stage
-        ############
+        {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
+            {'title': 'Fonctionnement', 'name': 'K2700Fonct', 'type': 'group', 'children': [
+                {'title': 'FRONT pannel', 'name': 'frontpannel', 'type': 'group', 'children': [
+                    {'title': 'Mode', 'name': 'mode', 'type': 'list', 'limits': ['VDC','VAC','IDC','IAC','R2W','R4W','FREQ','TEMP'], 'value': 'VDC'}]},
+                {'title': 'REAR pannel', 'name': 'rearpannel', 'type': 'group', 'children': [
+                    {'title': 'Mode', 'name': 'mode', 'type': 'list', 'limits': ['SCAN_VDC', 'SCAN_VAC', 'SCAN_IDC', 'SCAN_IAC', 'SCAN_R2W', 'SCAN_R4W', 'SCAN_FREQ', 'SCAN_TEMP'], 'value': 'SCAN_VDC'}
+                ]}
+            ]}
+        ]}
         ]
 
-    def ini_attributes(self):
-        #  TODO declare the type of the wrapper (and assign it to self.controller) you're going to use for easy
-        #  autocompletion
-        self.controller: PythonWrapperOfYourInstrument = None
-
-        # TODO declare here attributes you want/need to init with a default value
-
+    def __init__(self, parent=None, params_state=None):
+        super(DAQ_1DViewer_keithley2700, self).__init__(parent, params_state)
         self.x_axis = None
+        self.ind_data = 0
 
     def commit_settings(self, param: Parameter):
         """Apply the consequences of a change of value in the detector settings
@@ -60,11 +55,10 @@ class DAQ_1DViewer_Template(DAQ_Viewer_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
-        ## TODO for your custom plugin
-        if param.name() == "a_parameter_you've_added_in_self.params":
-           self.controller.your_method_to_apply_this_param_change()
-#        elif ...
-        ##
+        if param.name() == "mode":
+            """Updates the newly selected measurement mode"""
+            self.controller.set_mode(param.value())
+            ### Faire une IF scan in mode pour aller chercher setmode scan en plus du mode du front
 
     def ini_detector(self, controller=None):
         """Detector communication initialization
@@ -82,32 +76,46 @@ class DAQ_1DViewer_Template(DAQ_Viewer_base):
             False if initialization failed otherwise True
         """
 
-        raise NotImplemented  # TODO when writing your own plugin remove this line and modify the one below
-        self.ini_detector_init(old_controller=controller,
-                               new_controller=PythonWrapperOfYourInstrument())
+        self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
+        if self.settings.child(('controller_status')).value() == "Slave":
+            if controller is None: 
+                raise Exception('no controller has been defined externally while this detector is a slave one')
+            else:
+                self.controller = controller
+        else:
+            try:
+                self.controller = Keithley2700('ASRL1::INSTR')
+            except Exception as e:
+                raise Exception('No controller could be defined because an error occurred\
+                 while connecting to the instrument. Error: {}'.format(str(e)))
+
+        self.controller.set_mode(self.settings.child('K2700Params', 'K2700Fonct', 'rearpannel', 'mode').value())
+        ##### SET SETTING que pour rear pannel, à faire aussi pour front !
 
         ## TODO for your custom plugin
         # get the x_axis (you may want to to this also in the commit settings if x_axis may have changed
-        data_x_axis = self.controller.your_method_to_get_the_x_axis()  # if possible
-        self.x_axis = Axis(data=data_x_axis, label='', units='', index=0)
+        data_x_axis = self.controller.fetchvalue_and_time()[1]  # if possible
+        self.x_axis = Axis(data=data_x_axis, label='Time', units='seconds', index=0)
 
-        # TODO for your custom plugin. Initialize viewers pannel with the future type of data
-        self.dte_signal_temp.emit(DataToExport(name='myplugin',
-                                               data=[DataFromPlugins(name='Mock1',
-                                                                     data=[np.array([0., 0., ...]),
-                                                                           np.array([0., 0., ...])],
-                                                                     dim='Data1D', labels=['Mock1', 'label2'],
-                                                                     axes=[self.x_axis])]))
+        # Initialize viewers with the future type of data
+        if not 'OFF' in self.settings.child('K2700Params', 'K2700Fonct', 'rearpannel', 'mode').value():
+            self.data_grabed_signal.emit([DataFromPlugins(name='Keithley2700',
+                                                          data=[np.array([0]),np.array([0])],
+                                                          labels=['Meas', 'Time'],
+                                                          axes=[self.x_axis])])
 
+        self.status.initialized = True
+        self.status.controller = self.controller
+        # self.controller.initcontoff()
+        self.controller.initconton()
         info = "Whatever info you want to log"
-        initialized = True
-        return info, initialized
+        return info,self.status
 
     def close(self):
         """Terminate the communication protocol"""
         ## TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
         #  self.controller.your_method_to_terminate_the_communication()  # when writing your own plugin replace this line
+        pass
 
     def grab_data(self, Naverage=1, **kwargs):
         """Start a grab from the detector
@@ -122,31 +130,35 @@ class DAQ_1DViewer_Template(DAQ_Viewer_base):
         """
         ## TODO for your custom plugin: you should choose EITHER the synchrone or the asynchrone version following
 
-        ##synchrone version (blocking function)
-        data_tot = self.controller.your_method_to_start_a_grab_snap()
-        self.dte_signal.emit(DataToExport('myplugin',
-                                          data=[DataFromPlugins(name='Mock1', data=data_tot,
-                                                                dim='Data1D', labels=['dat0', 'data1'],
-                                                                axes=[self.x_axis])]))
+        # synchrone version (blocking function)
 
-        ##asynchrone version (non-blocking function with callback)
-        self.controller.your_method_to_start_a_grab_snap(self.callback)
+        data_tot = self.controller.fetchvalue_and_time()[0]
+        # self.dte_signal.emit(DataToExport('myplugin',
+        #                                   data=[DataFromPlugins(name='ASRL1::INSTR', data=data_tot,
+        #                                                         dim='Data1D', labels=['dat0', 'data1'],
+        #                                                         axes=[self.x_axis])]))
+        self.data_grabed_signal.emit([DataFromPlugins(name='ASRL1::INSTR', data=data_tot,
+                                                      dim='Data0D', labels=['dat0', 'data1'],axes=[self.x_axis])])
+        #########################################################
+
+        # asynchrone version (non-blocking function with callback)
+        # raise NotImplemented  # when writing your own plugin remove this line
+        # self.controller.your_method_to_start_a_grab_snap(self.callback)  # when writing your own plugin replace this line
         #########################################################
 
 
-    def callback(self):
-        """optional asynchrone method called when the detector has finished its acquisition of data"""
-        data_tot = self.controller.your_method_to_get_data_from_buffer()
-        self.dte_signal.emit(DataToExport('myplugin',
-                                          data=[DataFromPlugins(name='Mock1', data=data_tot,
-                                                                dim='Data1D', labels=['dat0', 'data1'])]))
+    # def callback(self):
+        # """optional asynchrone method called when the detector has finished its acquisition of data"""
+        # data_tot = self.controller.your_method_to_get_data_from_buffer()
+        # self.dte_signal.emit(DataToExport(name='myplugin',
+                                        #   data=[DataFromPlugins(name='Mock1', data=data_tot,
+                                                                # dim='Data0D', labels=['dat0', 'data1'])]))
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
         ## TODO for your custom plugin
-        raise NotImplemented  # when writing your own plugin remove this line
-        self.controller.your_method_to_stop_acquisition()  # when writing your own plugin replace this line
-        self.emit_status(ThreadCommand('Update_Status', ['Some info you want to log']))
+        # self.controller.your_method_to_stop_acquisition()  # when writing your own plugin replace this line
+        # self.emit_status(ThreadCommand('Update_Status', ['Some info you want to log']))
         ##############################
         return ''
 
