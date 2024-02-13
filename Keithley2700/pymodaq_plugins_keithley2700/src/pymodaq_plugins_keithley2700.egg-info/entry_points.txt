@@ -1,5 +1,0 @@
-[pymodaq.instruments]
-keithley2700 = pymodaq_plugins_keithley2700
-
-[pymodaq.plugins]
-keithley2700 = pymodaq_plugins_keithley2700

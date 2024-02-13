@@ -1,0 +1,24 @@
+********************
+
+PYMODAQ INSTALLATION
+
+********************
+
+It is recommended to create a dedicated env to install Pymodaq
+To do so, open cmd prompt & run the following sequence:
+	>C:\Anaconda3\condabin\activate.bat		#(Or open an Anaconda3 prompt directly)
+	>conda create --name Pymodaq_ENV_NAME python=3.12.0
+	>conda deactivate
+	>conda activate Pymodaq_ENV_NAME
+	>conda install pyqt
+	>pip install pymodaq==4.0.11
+
+# To install specific version, conda install pckg=version / pip install pckg==version
+
+For a custom plugin, you need to pip install it in your environment directory:
+	>cd C:\Users\[...]\Pymodaq_ENV_NAME
+	>pip install PLUGIN_NAME (type: pymodaq_plugin_device)
+
+So for the Keithley2700:
+	>pip install pymodaq_plugin_keithley2700
+	>pip install pyvisa		#Needed for Keithley2700 plugin

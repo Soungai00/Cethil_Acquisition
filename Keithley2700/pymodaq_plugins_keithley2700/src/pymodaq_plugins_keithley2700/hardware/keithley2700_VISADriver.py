@@ -8,13 +8,13 @@ config = configparser.ConfigParser()
 config.read('k2700config.ini')
 
 # Termination character
-if config['INTRUMENT']['termination'] == 'CR':
+if config['INSTRUMENT']['termination'] == 'CR':
     termination = '\r'
-elif config['INTRUMENT']['termination'] == 'LF':
+elif config['INSTRUMENT']['termination'] == 'LF':
     termination = '\n'
-elif config['INTRUMENT']['termination'] == 'CRLF':
+elif config['INSTRUMENT']['termination'] == 'CRLF':
     termination = '\r\n'
-elif config['INTRUMENT']['termination'] == 'LFCR':
+elif config['INSTRUMENT']['termination'] == 'LFCR':
     termination = '\n\r'
 
 # Channel(s) to read

@@ -11,15 +11,15 @@ import configparser
 # Read configuration file
 config = configparser.ConfigParser()
 config.read('k2700config.ini')
-rsrc_name = config['INTRUMENT']['rsrc_name']
-panel = config['INTRUMENT']['panel'].upper()
+rsrc_name = config['INSTRUMENT']['rsrc_name']
+panel = config['INSTRUMENT']['panel'].upper()
 channels = config['PARAMETERS']['chan_to_read']
 
 Chan_to_plot=[]
 for i in range(len(channels.split(','))):
     Chan_to_plot.append('Channel '+str(channels.split(',')[i]))
 
-class DAQ_0DViewer_keithley2700(DAQ_Viewer_base):
+class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     """ Keithley 2700 plugin class for a OD viewer.
     
     This object inherits all functionalities to communicate with PyMoDAQ’s DAQ_Viewer module through inheritance via
@@ -73,7 +73,7 @@ class DAQ_0DViewer_keithley2700(DAQ_Viewer_base):
         ]
 
     def __init__(self, parent=None, params_state=None):
-        super(DAQ_0DViewer_keithley2700, self).__init__(parent, params_state)
+        super(DAQ_0DViewer_Keithley2700, self).__init__(parent, params_state)
         self.x_axis = None
         self.ind_data = 0
 
