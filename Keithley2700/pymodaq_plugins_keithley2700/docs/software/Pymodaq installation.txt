@@ -1,8 +1,8 @@
-********************
+****************************
 
-PYMODAQ INSTALLATION
-
-********************
+	PYMODAQ INSTALLATION
+	
+****************************
 
 It is recommended to create a dedicated env to install Pymodaq
 To do so, open cmd prompt & run the following sequence:
@@ -14,6 +14,13 @@ To do so, open cmd prompt & run the following sequence:
 	>pip install pymodaq==4.0.11
 
 # To install specific version, conda install pckg=version / pip install pckg==version
+
+
+***************************
+
+	PLUGIN INSTALLATION
+	
+***************************
 
 For a custom plugin, you need to pip install it in your environment directory:
 	>cd C:\Users\[...]\Pymodaq_ENV_NAME
