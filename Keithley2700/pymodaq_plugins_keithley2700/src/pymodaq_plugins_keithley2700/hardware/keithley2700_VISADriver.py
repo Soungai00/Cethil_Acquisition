@@ -5,7 +5,14 @@ import configparser
 
 # Read configuration file
 config = configparser.ConfigParser()
-config.read('k2700config.ini')
+
+# ABSOLUTE PATH needed
+config.read('C:\\Users\\sguerrero\\Documents\\git\\Cethil-Acquisition\\.conda\\pymodaq_env\\Lib\\site-packages\\pymodaq_plugins_keithley2700\\k2700config.ini')
+
+# Non-amps modules
+non_amp_modules_list = ['7701','7703','7706','7707','7708','7709']
+if config['INSTRUMENT']['modules'] in non_amp_modules_list:
+    non_amp_module = True
 
 # Termination character
 if config['INSTRUMENT']['termination'] == 'CR':
@@ -17,8 +24,16 @@ elif config['INSTRUMENT']['termination'] == 'CRLF':
 elif config['INSTRUMENT']['termination'] == 'LFCR':
     termination = '\n\r'
 
-# Channel(s) to read
-channels = '(@' + config['PARAMETERS']['chan_to_read'] + ')'
+# Channels list
+channels_list = config['PARAMETERS']['chan_to_read'].split(",")
+# Modes list
+modes_list = config['PARAMETERS']['chan_mode'].upper().split(",")
+if len(channels_list)!=len(modes_list):
+    raise ValueError("Number of defined modes doesn't match the number of channels")
+modes_list = [v.replace('V','VOLT:') for v in modes_list]
+modes_list = [i.replace('I','CURR:') for i in modes_list]
+modes_list = [r2.replace('R2W','RES') for r2 in modes_list]
+modes_list = [r4.replace('R4W','FRES') for r4 in modes_list]
 
 class Keithley2700VISADriver:
     """VISA class driver for the Keithley 2700 Multimeter/Switch System
@@ -84,86 +99,104 @@ class Keithley2700VISADriver:
     
     def read(self):
         # Read command performs 3 actions (equivalent to ABORT,INIT,FETCH?)
-        str_all = self._instr.query("READ?")
-        # print('str_all = ',str_all)
-        # Split the instrument answer and remove non-digit characters (units)
-        split_str = str_all.split(",")
-        # Select only the measured value not looking at the time and reading count
-        quantities = split_str[::3]
-        # print('quantities = ',quantities)
-        str_values = ''
-        for j in range(len(quantities)):
+        str_answer = self._instr.query("READ?")
+        # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
+        list_split_answer = str_answer.split(",")
+
+        # MEASUREMENT
+        list_measurements = list_split_answer[::3]
+        str_measurements = ''
+        # TIME
+        list_times = list_split_answer[1::3]
+        str_times = ''
+        for j in range(len(list_measurements)):
             if not j==0:
-                str_values += ','
-            for l in range(len(quantities[j])):
-                test_carac = quantities[j][-(l+1)]
+                str_measurements += ','
+                str_times += ','
+            for l in range(len(list_measurements[j])):
+                test_carac = list_measurements[j][-(l+1)]
+                # Remove non-digit characters (units)
                 if test_carac.isdigit() == True:
                     if l==0:   
-                        str_values += quantities[j]
+                        str_measurements += list_measurements[j]
                     else:
-                        str_values += quantities[j][:-l]
+                        str_measurements += list_measurements[j][:-l]
                     break
-        # Split the created string to access each value
-        values = str_values.split(",")
-        # Create a numpy.array containing desired values (float type)
-        values_array = np.array(values,dtype=float)
-        # Return a list of each value stored in the buffer
-        return str_all,values_array
+            for l in range(len(list_times[j])):
+                test_carac = list_times[j][-(l+1)]
+                # Remove non-digit characters (units)
+                if test_carac.isdigit() == True:
+                    if l==0:   
+                        str_times += list_times[j]
+                    else:
+                        str_times += list_times[j][:-l]
+                    break
+        
+        # Split created string to access each value
+        list_measurements_values = str_measurements.split(",")
+        list_times_values = str_times.split(",")
+        # Create numpy.array containing desired values (float type)
+        array_measurements_values = np.array(list_measurements_values,dtype=float)
+        array_times_values = np.array(list_times_values,dtype=float)
+        # array_values = np.c_[array_measurements_values,array_times_values]
+
+        return str_answer,array_measurements_values,array_times_values
+        # return str_answer,array_values
 
     def fetch(self):
         # Return the latest available reading
-        str_all = self._instr.query("FETCH?")
-        # print('str_all = ',str_all)
-        # Split the instrument answer and remove non-digit characters (units)
-        split_str = str_all.split(",")
-        # Select only the measured value not looking at the time and reading count
-        quantities = split_str[::3]
-        # print('quantities = ',quantities)
-        str_values = ''
-        for j in range(len(quantities)):
+        str_answer = self._instr.query("FETCH?")
+        # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
+        list_split_answer = str_answer.split(",")
+
+        # MEASUREMENT
+        list_measurements = list_split_answer[::3]
+        str_measurements = ''
+        for j in range(len(list_measurements)):
             if not j==0:
-                str_values += ','
-            for l in range(len(quantities[j])):
-                test_carac = quantities[j][-(l+1)]
+                str_measurements += ','
+            for l in range(len(list_measurements[j])):
+                test_carac = list_measurements[j][-(l+1)]
+                # Remove non-digit characters (units)
                 if test_carac.isdigit() == True:
                     if l==0:   
-                        str_values += quantities[j]
+                        str_measurements += list_measurements[j]
                     else:
-                        str_values += quantities[j][:-l]
+                        str_measurements += list_measurements[j][:-l]
                     break
         # Split the created string to access each value
-        values = str_values.split(",")
+        list_measurements_values = str_measurements.split(",")
         # Create a numpy.array containing desired values (float type)
-        values_array = np.array(values,dtype=float)
-        # Return a list of each value stored in the buffer
-        return str_all,values_array
+        array_measurements_values = np.array(list_measurements_values,dtype=float)
+
+        return str_answer,array_measurements_values
 
     def data(self):
-        str_all = self._instr.query("TRAC:DATA?")
-        # print('str_all = ',str_all)
-        # Split the instrument answer and remove non-digit characters (units)
-        split_str = str_all.split(",")
-        # Select only the measured value not looking at the time and reading count
-        quantities = split_str[::3]
-        # print('quantities = ',quantities)
-        str_values = ''
-        for j in range(len(quantities)):
+        str_answer = self._instr.query("TRAC:DATA?")
+        # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
+        list_split_answer = str_answer.split(",")
+
+        # MEASUREMENT
+        list_measurements = list_split_answer[::3]
+        str_measurements = ''
+        for j in range(len(list_measurements)):
             if not j==0:
-                str_values += ','
-            for l in range(len(quantities[j])):
-                test_carac = quantities[j][-(l+1)]
+                str_measurements += ','
+            for l in range(len(list_measurements[j])):
+                test_carac = list_measurements[j][-(l+1)]
+                # Remove non-digit characters (units)
                 if test_carac.isdigit() == True:
                     if l==0:   
-                        str_values += quantities[j]
+                        str_measurements += list_measurements[j]
                     else:
-                        str_values += quantities[j][:-l]
+                        str_measurements += list_measurements[j][:-l]
                     break
         # Split the created string to access each value
-        values = str_values.split(",")
+        list_measurements_values = str_measurements.split(",")
         # Create a numpy.array containing desired values (float type)
-        values_array = np.array(values,dtype=float)
-        # Return a list of each value stored in the buffer
-        return str_all,values_array
+        array_measurements_values = np.array(list_measurements_values,dtype=float)
+
+        return str_answer,array_measurements_values
     
     def define_input(self, input):
         return str(input)
@@ -171,7 +204,7 @@ class Keithley2700VISADriver:
     def stop_acquisition(self):
         # If scan in process, stop it
         self._instr.write("ROUT:SCAN:LSEL NONE")
-    
+
     def set_mode(self, mode, **kwargs):
         """
 
@@ -212,15 +245,42 @@ class Keithley2700VISADriver:
         elif "TEMP" in mode:
             cmd += "'TEMP'"
             conf = "TEMP"
+        
+        # Instructions to be sent to the keithley
 
-        # Instructions to be sent
+        # FRONT panel
         if "SCAN" not in mode:
             self._instr.write(cmd)
+        # Config
+        if 'range' in kwargs.keys():
+            self._instr.write(conf+':RANG '+str(kwargs['range']))
+        if 'autorange' in kwargs.keys():
+            self._instr.write(conf+':RANG:AUTO '+str(kwargs['autorange']))
+        if 'resolution' in kwargs.keys():
+            self._instr.write(conf+':DIG '+str(kwargs['resolution']))
+        if 'NPLC' in kwargs.keys():
+            self._instr.write(conf+':NPLC '+str(kwargs['NPLC']))
+
+        # REAR panel
         else:
             self.reset()
             self.clear_buffer()
+
+            # Select channels in the channels list (config file) matching the requested mode
+            chan_to_read =''
+            try:
+                for i in range(len(modes_list)):
+                    if modes_list[i] == cmd[6:-1]:
+                        if not chan_to_read == '':
+                            chan_to_read+=','
+                        chan_to_read+=channels_list[i]
+            except ValueError:
+                raise ValueError("Selected mode doesn't match any of the ones requested in the configuration file")
+            
+            # Channel(s) to read
+            channels = '(@' + chan_to_read + ')'
             cmd += "," + channels
-            print('Command sent :',cmd)
+            print('SCPI command sent to the keithley:',cmd)
             self._instr.write(cmd)
             if "SCAN_TEMP" in mode:
                 self._instr.write("TEMP:TRAN TC," + channels)
@@ -244,21 +304,11 @@ class Keithley2700VISADriver:
             # Use timmer to trigger <n> seconds after previous scan end
             # k2700._instr.write("TRIG:SOUR TIM")
             # k2700._instr.write("TRIG:TIM 0.01")
-            
-        # Config
-        if 'range' in kwargs.keys():
-            self._instr.write(conf+':RANG '+str(kwargs['range']))
-        if 'autorange' in kwargs.keys():
-            self._instr.write(conf+':RANG:AUTO '+str(kwargs['autorange']))
-        if 'resolution' in kwargs.keys():
-            self._instr.write(conf+':DIG '+str(kwargs['resolution']))
-        if 'NPLC' in kwargs.keys():
-            self._instr.write(conf+':NPLC '+str(kwargs['NPLC']))
+            return(chan_to_read)
 
 
 if __name__ == "__main__":
     try:
-
         print("In main")
 
         k2700 = Keithley2700VISADriver("ASRL1::INSTR")
@@ -320,6 +370,9 @@ if __name__ == "__main__":
         # ###################################
         k2700.reset()
 
+        # Channel(s) to read
+        channels = '(@' + config['PARAMETERS']['chan_to_read'] + ')'
+
         # Temperature tests
         k2700._instr.write("FUNC 'TEMP', " + channels)
         k2700._instr.write("TEMP:TRAN TC, " + channels)
@@ -330,7 +383,8 @@ if __name__ == "__main__":
         # k2700._instr.write("FUNC 'VOLT:DC', " + channels)
 
         # Set scan list channels
-        k2700._instr.write("ROUT:SCAN " + channels)
+        # k2700._instr.write("ROUT:SCAN " + channels)
+        k2700._instr.write("ROUT:SCAN (@101,102)")
         print('Rout scan ? :', k2700._instr.query("ROUT:SCAN?"))
         # Start scan immediately when enabled and triggered, default : IMM
         k2700._instr.write("ROUT:SCAN:TSO IMM")
@@ -341,9 +395,11 @@ if __name__ == "__main__":
         # IF INIT COUNT OFF
         k2700.initcontoff()
         # Set to perform 1 to INF scan(s)
-        k2700._instr.write("TRIG:COUN INF")
+        k2700._instr.write("TRIG:COUN 1")
         # Set to scan <n> channels
-        k2700._instr.write("SAMP:COUN 6")
+        samp_count = 1+channels.count(',')
+        # k2700._instr.write("SAMP:COUN "+str(samp_count))
+        k2700._instr.write("SAMP:COUN 2")
         # Trigger immediately after previous scan end
         k2700._instr.write("TRIG:SOUR IMM")
         # Use timmer to trigger <n> seconds after previous scan end
@@ -373,10 +429,9 @@ if __name__ == "__main__":
         # Each READ command initiate one scan cycle and request sample readings
         print("Below a loop with the query READ? :")
         for i in range(2):
-            print('string with all data :')
-            print(k2700.read()[0])
-            print('string with values only :')
-            print(k2700.read()[1])
+            print('string with all data :', k2700.read()[0])
+            print('string with values only :', k2700.read()[1])
+
 
         # # IF INIT COUNT ON
         # k2700.initconton()
@@ -388,7 +443,7 @@ if __name__ == "__main__":
         #     time.sleep(2)
 
         # Stop the scan
-        k2700._instr.write("ROUT:SCAN:LSEL NONE")
+        # k2700._instr.write("ROUT:SCAN:LSEL NONE")
 
         k2700.clear_buffer()
         k2700.close()

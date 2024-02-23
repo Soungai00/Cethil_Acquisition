@@ -1,51 +1,72 @@
+import os
+import csv
+import time
 import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataFromPlugins, DataToExport
+from pymodaq.utils.data import Axis, DataFromPlugins, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter import Parameter
 from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithley2700
+from ...hardware.keithley2700_VISADriver import non_amp_module
+import configparser
 
+# Read configuration file
+config = configparser.ConfigParser()
+# ABSOLUTE PATH needed
+config.read('C:\\Users\\sguerrero\\Documents\\git\\Cethil-Acquisition\\.conda\\pymodaq_env\\Lib\\site-packages\\pymodaq_plugins_keithley2700\\k2700config.ini')
+rsrc_name = config['INSTRUMENT']['rsrc_name']
+panel = config['INSTRUMENT']['panel'].upper()
+channels = config['PARAMETERS']['chan_to_read']
 
-class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
+class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
     """ Keithley 2700 plugin class for a OD viewer.
     
     This object inherits all functionalities to communicate with PyMoDAQ’s DAQ_Viewer module through inheritance via
     DAQ_Viewer_base. It makes a bridge between the DAQ_Viewer module and the Python wrapper of a the keithley 2700.
 
-    TODO Complete the docstring of your plugin with:
-        * The set of instruments that should be compatible with this instrument plugin.
-        * With which instrument it has actually been tested.
-        * The version of PyMoDAQ during the test.
-        * The version of the operating system.
-        * Installation instructions: what manufacturer’s drivers should be installed to make it run?
+    * Keithley 27XX should be compatible with this plugin
+    * Tested with Keithley 2700 Multimeter/Switch System
+    * PyMoDAQ version = 4.0.11 during the test
 
     Attributes:
     -----------
     controller: object
         The particular object that allow the communication with the hardware, in general a python wrapper around the
          hardware library.
-         
-    # TODO add your particular attributes here if any
-
+    params: dictionnary list
+    x_axis: 1D numpy array
+    mode: str
+    
     """
 
-    params = comon_parameters+[
-        {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
-            {'title': 'Fonctionnement', 'name': 'K2700Fonct', 'type': 'group', 'children': [
-                {'title': 'FRONT pannel', 'name': 'frontpannel', 'type': 'group', 'children': [
-                    {'title': 'Mode', 'name': 'mode', 'type': 'list', 'limits': ['VDC','VAC','IDC','IAC','R2W','R4W','FREQ','TEMP'], 'value': 'VDC'}]},
-                {'title': 'REAR pannel', 'name': 'rearpannel', 'type': 'group', 'children': [
-                    {'title': 'Mode', 'name': 'mode', 'type': 'list', 'limits': ['SCAN_VDC', 'SCAN_VAC', 'SCAN_IDC', 'SCAN_IAC', 'SCAN_R2W', 'SCAN_R4W', 'SCAN_FREQ', 'SCAN_TEMP'], 'value': 'SCAN_VDC'}
+    if panel == 'FRONT':
+        print('Panel configuration :',panel)
+        params = comon_parameters+[
+            {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
+                {'title': 'FRONT panel', 'name': 'frontpanel', 'type': 'group', 'children': [
+                    {'title': 'Mode', 'name': 'frontmode', 'type': 'list', 'limits': ['VDC','VAC','IDC','IAC','R2W','R4W','FREQ','TEMP'], 'value': 'VDC'}]}
+            ]}
+        ]
+    elif panel == 'REAR':
+        print('Panel configuration :',panel)
+        params = comon_parameters+[
+            {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
+                {'title': 'REAR panel', 'name': 'rearpanel', 'type': 'group', 'children': [
+                    {'title': 'Mode', 'name': 'rearmode', 'type': 'list', 'limits': ['VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ', 'TEMP'], 'value': 'VDC'}
                 ]}
             ]}
-        ]}
         ]
 
+    # Remove current measurement from parameters when non-amps modules
+    if non_amp_module == True:
+        params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'I' in i]
+
     def __init__(self, parent=None, params_state=None):
-        super(DAQ_1DViewer_keithley2700, self).__init__(parent, params_state)
+        super(DAQ_1DViewer_Keithley2700, self).__init__(parent, params_state)
         self.x_axis = None
-        self.ind_data = 0
+        self.channels_in_selected_mode = None
+        self.start_time = None
 
     def commit_settings(self, param: Parameter):
         """Apply the consequences of a change of value in the detector settings
@@ -55,10 +76,19 @@ class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
         param: Parameter
             A given parameter (within detector_settings) whose value has been changed by the user
         """
-        if param.name() == "mode":
+        if 'mode' in param.name():
             """Updates the newly selected measurement mode"""
-            self.controller.set_mode(param.value())
-            ### Faire une IF scan in mode pour aller chercher setmode scan en plus du mode du front
+            print('Parameter :',param.value())
+            # Read the configuration file to determine which mode to use
+            if panel == 'FRONT':
+                value = param.value()
+                self.controller.set_mode(value)
+            elif panel == 'REAR':
+                value = 'SCAN_'+param.value()
+                self.channels_in_selected_mode = self.controller.set_mode(value)
+                print('Channels to plot :',self.channels_in_selected_mode)
+
+            print('DAQ_viewer command sent to keithley visa driver :',value)
 
     def ini_detector(self, controller=None):
         """Detector communication initialization
@@ -75,6 +105,8 @@ class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
         initialized: bool
             False if initialization failed otherwise True
         """
+        print('Detector : 1D')
+        print('Channels :', channels)
 
         self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
         if self.settings.child(('controller_status')).value() == "Slave":
@@ -84,38 +116,49 @@ class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
                 self.controller = controller
         else:
             try:
-                self.controller = Keithley2700('ASRL1::INSTR')
+                self.controller = Keithley2700(rsrc_name)
             except Exception as e:
                 raise Exception('No controller could be defined because an error occurred\
                  while connecting to the instrument. Error: {}'.format(str(e)))
-
-        self.controller.set_mode(self.settings.child('K2700Params', 'K2700Fonct', 'rearpannel', 'mode').value())
-        ##### SET SETTING que pour rear pannel, à faire aussi pour front !
-
-        ## TODO for your custom plugin
-        # get the x_axis (you may want to to this also in the commit settings if x_axis may have changed
-        data_x_axis = self.controller.fetchvalue_and_time()[1]  # if possible
-        self.x_axis = Axis(data=data_x_axis, label='Time', units='seconds', index=0)
+        
+        # Reset Keithley
+        self.controller.reset()
+        # Initilize detector communication and set the default value (VDC)
+        if panel == 'FRONT':
+            value = self.settings.child('K2700Params', 'frontpanel', 'frontmode').value()
+            self.controller.set_mode(value)
+        elif panel == 'REAR':
+            value = 'SCAN_'+self.settings.child('K2700Params', 'rearpanel', 'rearmode').value()
+            self.channels_in_selected_mode = self.controller.set_mode(value)
+            print('Channels to plot :',self.channels_in_selected_mode)
+        print('DAQ_viewer command sent to keithley visa driver :',value)
 
         # Initialize viewers with the future type of data
-        if not 'OFF' in self.settings.child('K2700Params', 'K2700Fonct', 'rearpannel', 'mode').value():
-            self.data_grabed_signal.emit([DataFromPlugins(name='Keithley2700',
-                                                          data=[np.array([0]),np.array([0])],
-                                                          labels=['Meas', 'Time'],
-                                                          axes=[self.x_axis])])
-
+        # self.dte_signal.emit(DataToExport(name='keithley2700',
+        #                                   data=[DataFromPlugins(name=rsrc_name,
+        #                                                         data=[np.array([0])],
+        #                                                         dim='Data1D',
+        #                                                         labels=['Meas', 'Time'])]))
+        self.dte_signal.emit(DataToExport(name='keithley2700',
+                                          data=[DataFromPlugins(name='Temperature_0D',
+                                                                data=[np.array([0])],
+                                                                dim='Data1D',
+                                                                labels=['Meas', 'Time']),
+                                                DataFromPlugins(name='Temperature_1D',
+                                                                data=[np.array([0])],
+                                                                dim='Data1D',
+                                                                x_axis=Axis(label='Test_x_axis_ini', units='s',data=np.array([0]),index=0),
+                                                                labels=['Meas', 'Time'])]))
+        
         self.status.initialized = True
         self.status.controller = self.controller
-        # self.controller.initcontoff()
-        self.controller.initconton()
-        info = "Whatever info you want to log"
-        return info,self.status
+        
+        return self.status
 
     def close(self):
         """Terminate the communication protocol"""
-        ## TODO for your custom plugin
-        #  self.controller.your_method_to_terminate_the_communication()  # when writing your own plugin replace this line
-        pass
+        self.controller.reset()
+        print('communication ended successfully')
 
     def grab_data(self, Naverage=1, **kwargs):
         """Start a grab from the detector
@@ -128,40 +171,87 @@ class DAQ_1DViewer_keithley2700(DAQ_Viewer_base):
         kwargs: dict
             others optionals arguments
         """
-        ## TODO for your custom plugin: you should choose EITHER the synchrone or the asynchrone version following
+        if self.start_time == None:
+            self.start_time = time.time()
+        
+        # TIME
+        grabbed_time = time.time()
+        print("Time : ", grabbed_time)
+        print('Start time :', self.start_time)
+        # ACQUISITION OF DATA
+        channels_in_selected_mode = self.channels_in_selected_mode
+        print('channels_in_selected_mode = ',channels_in_selected_mode)
+        if panel == 'FRONT':
+            data_measurement = self.controller.read()[1]
+            # data_red = self.controller.read()[1]
+            # data_measurement = data_red[:][1]
+            print('Data tot :',data_measurement)
+            print('Data tot[0][1] :',data_measurement[0][1])
+        elif panel == 'REAR':
+            Chan_to_plot=[]
+            for i in range(len(channels_in_selected_mode.split(','))):
+                Chan_to_plot.append('Channel '+str(channels_in_selected_mode.split(',')[i]))
+            print(Chan_to_plot)
+            # data_measurement = self.controller.read()[1]
+            data_tot = self.controller.read()
+            print('Data tot :',data_tot)
+            data_measurement = data_tot[1]
+            print('Data measurement :',data_measurement)
+            data_time = data_tot[2]
+            print('Data time :',data_time)
+            data_time_univ = data_time + grabbed_time - self.start_time
+            print('Data time univ:',data_time_univ)
+            print('type time_univ :',type(data_time_univ))
+            print('Data time univ[0]:',data_time_univ[0])
+            print('type time_univ[0] :',type(data_time_univ[0]))
+            for i in range(len(Chan_to_plot)):
+                print(Chan_to_plot[i]+': ',data_measurement[i])
 
-        # synchrone version (blocking function)
+        # AXIS
+        # x_axis = Axis(label='Time', units='s',data=np.array([data_time_univ[i] for i in range(len(data_time_univ))]),index=0)
+        # y_value = np.array([data_measurement[i] for i in range(len(data_measurement))])
+        x_axis = Axis(label='Time', units='s',data=np.array([data_time_univ[0]]),index=0)
+        y_value = np.array([data_measurement[0]])
+        print('x_axis :',x_axis)
+        print('type x :', type(x_axis.data))
+        print('x :', x_axis.data)
+        print('type y :', type(y_value))
+        print('y :', y_value)
 
-        data_tot = self.controller.fetchvalue_and_time()[0]
-        # self.dte_signal.emit(DataToExport('myplugin',
-        #                                   data=[DataFromPlugins(name='ASRL1::INSTR', data=data_tot,
-        #                                                         dim='Data1D', labels=['dat0', 'data1'],
-        #                                                         axes=[self.x_axis])]))
-        self.data_grabed_signal.emit([DataFromPlugins(name='ASRL1::INSTR', data=data_tot,
-                                                      dim='Data0D', labels=['dat0', 'data1'],axes=[self.x_axis])])
-        #########################################################
+        # EMISSION OF DATA
+        self.dte_signal.emit(DataToExport(name='keithley2700',
+                                          data=[DataFromPlugins(name='Temperature_0D',
+                                                                data=[np.array([data_measurement[i]]) for i in range(len(data_measurement))],
+                                                                dim='Data1D',
+                                                                labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))]),
+                                                DataFromPlugins(name='Temperature_1D',
+                                                                data=y_value,
+                                                                dim='Data1D',
+                                                                x_axis=x_axis,
+                                                                labels=Chan_to_plot[0])]))
+        
+        # SAVING DATA
 
-        # asynchrone version (non-blocking function with callback)
-        # raise NotImplemented  # when writing your own plugin remove this line
-        # self.controller.your_method_to_start_a_grab_snap(self.callback)  # when writing your own plugin replace this line
-        #########################################################
 
 
-    # def callback(self):
-        # """optional asynchrone method called when the detector has finished its acquisition of data"""
-        # data_tot = self.controller.your_method_to_get_data_from_buffer()
-        # self.dte_signal.emit(DataToExport(name='myplugin',
-                                        #   data=[DataFromPlugins(name='Mock1', data=data_tot,
-                                                                # dim='Data0D', labels=['dat0', 'data1'])]))
+
+        # Write data in txt file
+        if not os.path.exists('Keithley2700_data_det1D.txt'):
+            open('Keithley2700_data_det1D.txt','w')
+        file = open('Keithley2700_data_det1D.txt','a')
+        for i in range(len(data_measurement)):
+            # file.write("%.2f" % str(data_time_univ[i])+'\t')
+            # file.write("%.2f" % str(data_measurement[i])+'\t')
+            file.write(str(data_time_univ[i])+'\t'+str(data_measurement[i])+'\t')
+        file.write('\n')
+        file.close()
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
-        ## TODO for your custom plugin
-        # self.controller.your_method_to_stop_acquisition()  # when writing your own plugin replace this line
-        # self.emit_status(ThreadCommand('Update_Status', ['Some info you want to log']))
-        ##############################
+        # self.controller.stop_acquisition() #Stop scan
+        self.start_time = None
+        self.emit_status(ThreadCommand('Update_Status', ['Acquisition stoped']))
         return ''
-
 
 if __name__ == '__main__':
     main(__file__)
