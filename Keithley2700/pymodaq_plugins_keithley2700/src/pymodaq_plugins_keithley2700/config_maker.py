@@ -2,6 +2,13 @@ import configparser
 
 config = configparser.ConfigParser(allow_no_value=True)
 
+config.add_section('CONFIG')
+config.set('CONFIG','; Must set the absolute path of this configuration file in the 2 following files:')
+config.set('CONFIG','; daq_viewer_plugins\plugins_0D\daq_0Dviewer_Keithley2700.py')
+config.set('CONFIG','; hardware\keithley2700_VISADriver.py')
+config.set('CONFIG','; Example of absolute path: C:\\Users\\[...]\\k2700config.ini')
+
+
 config['INSTRUMENT'] = {}
 config.set('INSTRUMENT','; modules')
 config.set('INSTRUMENT','modules','7706')

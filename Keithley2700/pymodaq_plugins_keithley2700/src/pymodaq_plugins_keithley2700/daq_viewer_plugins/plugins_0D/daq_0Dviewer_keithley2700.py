@@ -1,6 +1,4 @@
 import os
-import csv
-import time
 import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand
@@ -41,7 +39,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     """
 
     if panel == 'FRONT':
-        print('Panel configuration :',panel)
+        print('Panel configuration 0D viewer:',panel)
         params = comon_parameters+[
             {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
                 {'title': 'FRONT panel', 'name': 'frontpanel', 'type': 'group', 'children': [
@@ -49,7 +47,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
             ]}
         ]
     elif panel == 'REAR':
-        print('Panel configuration :',panel)
+        print('Panel configuration 0D viewer:',panel)
         params = comon_parameters+[
             {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
                 {'title': 'REAR panel', 'name': 'rearpanel', 'type': 'group', 'children': [
@@ -133,7 +131,11 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         print('DAQ_viewer command sent to keithley visa driver :',value)
 
         # Initialize viewers with the future type of data
-        self.data_grabed_signal.emit([DataFromPlugins(name='Keithley2700', data=[np.array([0])], dim='Data0D', labels=['Meas', 'Time'])])
+        self.dte_signal.emit(DataToExport(name='keithley2700',
+                                          data=[DataFromPlugins(name=rsrc_name,
+                                                                data=[np.array([0])],
+                                                                dim='Data0D',
+                                                                labels=['Meas', 'Time'])]))
 
         self.status.initialized = True
         self.status.controller = self.controller
@@ -185,12 +187,11 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
             open('Keithley2700_data_det0D.txt','w')
         file = open('Keithley2700_data_det0D.txt','a')
         for i in range(len(data_tot)):
-            file.write(str(data_tot[i][0])+' ')
+            file.write(str(data_tot[i])+' ')
         file.write('\n')
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
-        # self.controller.stop_acquisition() #Stop scan
         self.emit_status(ThreadCommand('Update_Status', ['Acquisition stoped']))
         return ''
 
