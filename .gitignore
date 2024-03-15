@@ -1,3 +1,4 @@
 .conda/
+docs/_build
 Keithley2700_data_det0D.txt
 Keithley2700_data_det1D.txt
