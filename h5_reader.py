@@ -1,11 +1,17 @@
 # $ pip install h5py
 # $ pip install --no-cache-dir h5py
 
+import sys
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-filename = "data_test_1_13032024.h5"
+filename = sys.argv[1]
+
+print(filename)
+# filename = "data_test_1_13032024.h5"
+# filename = "data_test_3.h5"
+# filename = "Data_20240315_15_18_15.h5"
 
 def h5_tree(val, pre=''):
     items = len(val)

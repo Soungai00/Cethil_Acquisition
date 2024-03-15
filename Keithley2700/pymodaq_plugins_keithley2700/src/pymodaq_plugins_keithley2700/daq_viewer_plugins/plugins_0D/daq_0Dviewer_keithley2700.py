@@ -9,6 +9,10 @@ from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithl
 from ...hardware.keithley2700_VISADriver import non_amp_module
 import configparser
 
+from pymodaq.utils.parameter.utils import get_param_from_name, get_param_path
+
+
+
 # Read configuration file
 config = configparser.ConfigParser()
 # ABSOLUTE PATH needed
@@ -56,6 +60,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
             ]}
         ]
 
+
     # Remove current measurement from parameters when non-amps modules
     if non_amp_module == True:
         params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'I' in i]
@@ -64,6 +69,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         super(DAQ_0DViewer_Keithley2700, self).__init__(parent, params_state)
         self.x_axis = None
         self.channels_in_selected_mode = None
+        self.params_cacahuete = None
 
     def commit_settings(self, param: Parameter):
         """Apply the consequences of a change of value in the detector settings
@@ -84,6 +90,22 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
                 value = 'SCAN_'+param.value()
                 self.channels_in_selected_mode = self.controller.set_mode(value)
                 print('Channels to plot :',self.channels_in_selected_mode)
+
+                ### TEST 08-03
+                child = {'title': 'Cacahuete-Mode', 'name': 'cacahuete_mode', 'type': 'list', 'limits': ['cacahuete'], 'value': 'cacahuete'}
+                child_position = self.settings.child('K2700Params','rearpanel')
+                print("child_position: ",child_position)
+                print("type child_position: ",type(child_position))
+                if 'VAC' in param.value():
+                    print(param.value())
+                    print("settings chil rearpanel: ",self.settings.child('K2700Params','rearpanel'))
+                    # self.settings.child('K2700Params','rearpanel').addChild(testchild,autoIncrementName=True)
+                    self.settings.insertChild(child_position, child, autoIncrementName=True, existOk=False)
+                if 'TEMP' in param.value():
+                    print(param.value())
+                    print("rear panel children: ",self.settings.child('K2700Params','rearpanel').children())
+                    self.settings.child('K2700Params','rearpanel').removeChild(child)
+                ###
 
             print('DAQ_viewer command sent to keithley visa driver :',value)
 
@@ -175,11 +197,12 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
                 print(Chan_to_plot[i]+': ',data_tot[i])
         
         # Grab the 1st data of each scan array
-        self.dte_signal.emit(DataToExport(name='keithley2700',
+        data = DataToExport(name='keithley2700',
                                           data=[DataFromPlugins(name=rsrc_name,
                                                                 data=[np.array([data_tot[i]]) for i in range(len(data_tot))],
                                                                 dim='Data0D',
-                                                                labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))])]))
+                                                                labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))])])
+        self.dte_signal.emit(data)
         
 
         # Write data in txt file
@@ -189,6 +212,11 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         for i in range(len(data_tot)):
             file.write(str(data_tot[i])+' ')
         file.write('\n')
+
+
+        # Export data to database
+
+
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""

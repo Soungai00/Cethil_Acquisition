@@ -41,17 +41,19 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
     """
 
     if panel == 'FRONT':
-        print('Panel configuration :',panel)
+        print('Panel configuration 1D viewer:',panel)
         params = comon_parameters+[
             {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
+                {'title': 'ID', 'name': 'ID', 'type': 'text', 'value': ''},
                 {'title': 'FRONT panel', 'name': 'frontpanel', 'type': 'group', 'children': [
                     {'title': 'Mode', 'name': 'frontmode', 'type': 'list', 'limits': ['VDC','VAC','IDC','IAC','R2W','R4W','FREQ','TEMP'], 'value': 'VDC'}]}
             ]}
         ]
     elif panel == 'REAR':
-        print('Panel configuration :',panel)
+        print('Panel configuration 1D viewer:',panel)
         params = comon_parameters+[
             {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
+                {'title': 'ID', 'name': 'ID', 'type': 'text', 'value': ''},
                 {'title': 'REAR panel', 'name': 'rearpanel', 'type': 'group', 'children': [
                     {'title': 'Mode', 'name': 'rearmode', 'type': 'list', 'limits': ['VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ', 'TEMP'], 'value': 'VDC'}
                 ]}
@@ -60,7 +62,7 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
 
     # Remove current measurement from parameters when non-amps modules
     if non_amp_module == True:
-        params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'I' in i]
+        params[1]['children'][1]['children'][0]['limits'] = [i for i in params[1]['children'][1]['children'][0]['limits'] if not 'I' in i]
 
     def __init__(self, parent=None, params_state=None):
         super(DAQ_1DViewer_Keithley2700, self).__init__(parent, params_state)
@@ -123,6 +125,9 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
         
         # Reset Keithley
         self.controller.reset()
+        txt = self.controller.get_idn()
+        self.settings.child('K2700Params','ID').setValue(txt)
+
         # Initilize detector communication and set the default value (VDC)
         if panel == 'FRONT':
             value = self.settings.child('K2700Params', 'frontpanel', 'frontmode').value()
@@ -133,22 +138,25 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
             print('Channels to plot :',self.channels_in_selected_mode)
         print('DAQ_viewer command sent to keithley visa driver :',value)
 
-        # Initialize viewers with the future type of data
+        # Get the x_axis
+        self.x_axis = Axis(label='Time', units='s',data=np.array([0]),index=0)
+
+        # # Initialize viewers with the future type of data
         # self.dte_signal.emit(DataToExport(name='keithley2700',
-        #                                   data=[DataFromPlugins(name=rsrc_name,
+        #                                   data=[DataFromPlugins(name='Temperature_0D',
         #                                                         data=[np.array([0])],
         #                                                         dim='Data1D',
+        #                                                         labels=['Meas', 'Time']),
+        #                                         DataFromPlugins(name='Temperature_1D',
+        #                                                         data=[np.array([0])],
+        #                                                         dim='Data1D',
+        #                                                         x_axis=self.x_axis,
         #                                                         labels=['Meas', 'Time'])]))
+        
+        # Initialize viewers with the future type of data
         self.dte_signal.emit(DataToExport(name='keithley2700',
-                                          data=[DataFromPlugins(name='Temperature_0D',
-                                                                data=[np.array([0])],
-                                                                dim='Data1D',
-                                                                labels=['Meas', 'Time']),
-                                                DataFromPlugins(name='Temperature_1D',
-                                                                data=[np.array([0])],
-                                                                dim='Data1D',
-                                                                x_axis=Axis(label='Test_x_axis_ini', units='s',data=np.array([0]),index=0),
-                                                                labels=['Meas', 'Time'])]))
+                                          data=[DataFromPlugins(name='Temperature_1D',
+                                                                data=[np.array([0])])]))
         
         self.status.initialized = True
         self.status.controller = self.controller
@@ -211,6 +219,7 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
         # x_axis = Axis(label='Time', units='s',data=np.array([data_time_univ[i] for i in range(len(data_time_univ))]),index=0)
         # y_value = np.array([data_measurement[i] for i in range(len(data_measurement))])
         x_axis = Axis(label='Time', units='s',data=np.array([data_time_univ[0]]),index=0)
+        self.x_axis = x_axis
         y_value = np.array([data_measurement[0]])
         print('x_axis :',x_axis)
         print('type x :', type(x_axis.data))
@@ -219,21 +228,24 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
         print('y :', y_value)
 
         # EMISSION OF DATA
+        # self.dte_signal.emit(DataToExport(name='keithley2700',
+        #                                   data=[DataFromPlugins(name='Temperature_0D',
+        #                                                         data=[np.array([data_measurement[i]]) for i in range(len(data_measurement))],
+        #                                                         # data=y_value,
+        #                                                         dim='Data1D',
+        #                                                         labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))]),
+        #                                                         # labels=Chan_to_plot[0]),
+        #                                         DataFromPlugins(name='Temperature_1D',
+        #                                                         data=y_value,
+        #                                                         dim='Data1D',
+        #                                                         x_axis=self.x_axis,
+        #                                                         labels=Chan_to_plot[0])]))
+        
         self.dte_signal.emit(DataToExport(name='keithley2700',
-                                          data=[DataFromPlugins(name='Temperature_0D',
-                                                                data=[np.array([data_measurement[i]]) for i in range(len(data_measurement))],
-                                                                dim='Data1D',
-                                                                labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))]),
-                                                DataFromPlugins(name='Temperature_1D',
-                                                                data=y_value,
-                                                                dim='Data1D',
-                                                                x_axis=x_axis,
-                                                                labels=Chan_to_plot[0])]))
+                                          data=[DataFromPlugins(name='Temperature_1D',
+                                                                data=[data_measurement])]))
         
         # SAVING DATA
-
-
-
 
         # Write data in txt file
         if not os.path.exists('Keithley2700_data_det1D.txt'):
