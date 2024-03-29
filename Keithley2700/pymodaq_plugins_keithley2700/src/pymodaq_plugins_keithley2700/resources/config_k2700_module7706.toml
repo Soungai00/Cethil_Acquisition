@@ -1,0 +1,36 @@
+title = "Config file for the keithley2700 plugin using a 7706 acquisition card"
+
+[INSTRUMENT]
+rsrc_name = "ASRL1::INSTR"  # resource name
+termination = "LF"  # termination character
+panel = "REAR" # Front/rear panel
+
+[MODULE]
+module_name = 7706
+
+[CHANNELS]
+# Here must appear each channel used during the acquisition with its mode + additionals parameters if needed
+# Here are few examples (cf Manual User for an exhaustive list of each possibility):
+# 101 = {mode = 'freq'}
+# 102 = {mode = 'temp', transducer = 'tc', type = 'K', ref_junction = 'int', resolution = '6', nplc = 5}
+# 103 = {mode = 'volt:dc', range = 0.1, resolution = '6', nplc = 5}
+101 = {mode = 'temp', transducer = 'tc', type = 'K', ref_junction = 'int'}
+102 = {mode = 'temp', transducer = 'tc', type = 'K', ref_junction = 'int', resolution = 6, nplc = 5}
+103 = {mode = 'res', range = 0.1, resolution = 4.5, nplc = 3}
+104 = {}
+105 = {}
+106 = {}
+107 = {}
+108 = {}
+109 = {}
+110 = {}
+111 = {}
+112 = {}
+113 = {}
+114 = {}
+115 = {}
+116 = {}
+117 = {}
+118 = {}
+119 = {}
+120 = {}

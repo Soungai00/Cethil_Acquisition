@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -7,6 +7,7 @@
   <title>1. End User documentation &mdash; Cethil Acquisition 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=eafc0fe6" />
 
   
   <!--[if lt IE 9]>
@@ -15,9 +16,9 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=8d563738"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=af2ce170"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -48,7 +49,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">1. End User documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#pymodaq-installation">1.1. Pymodaq installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pymodaq-plugin-keithley2700">1.2. Pymodaq plugin: keithley2700</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#keithley-2700-multimeter">1.2. Keithley 2700 Multimeter</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#plugin-installation">1.2.1. Plugin installation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#instrument-control">1.2.2. Instrument control</a></li>
 </ul>
@@ -85,11 +86,11 @@
            <div itemprop="articleBody">
              
   <section id="end-user-documentation">
-<h1><span class="section-number">1. </span>End User documentation<a class="headerlink" href="#end-user-documentation" title="Link to this heading"></a></h1>
+<h1><span class="section-number">1. </span>End User documentation<a class="headerlink" href="#end-user-documentation" title="Permalink to this heading"></a></h1>
 <p>This documentation targets basic user.
-It describes how to use the keithley 2700 pymodaq plugin, from the installation of Pymodaq to the data acquisition and visualization.</p>
+It describes how to use Pymodaq and the instruments dedicated plugins, from the installation to the data acquisition and visualization.</p>
 <section id="pymodaq-installation">
-<h2><span class="section-number">1.1. </span>Pymodaq installation<a class="headerlink" href="#pymodaq-installation" title="Link to this heading"></a></h2>
+<h2><span class="section-number">1.1. </span>Pymodaq installation<a class="headerlink" href="#pymodaq-installation" title="Permalink to this heading"></a></h2>
 <p>Before installing pymodaq, check if anaconda3 is installed on your PC.
 If not, you can download it here:
 <a class="reference external" href="https://www.anaconda.com/">https://www.anaconda.com/</a></p>
@@ -99,13 +100,16 @@ If not, you can download it here:
 Moreover, all the tests have been made in a virtual anaconda environment.</p>
 </div>
 <p>In the same way, it is recommended to create a dedicated environment to install Pymodaq and work with.</p>
-<p>To do so, open a command prompt &amp; run the following sequence (By opening an Anaconda3 prompt directly, skip the first line):</p>
+<p>To do so, either open an Anaconda3 prompt directly or open a command prompt and run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ C:\Anaconda3\condabin\activate.bat
-    $ conda create --name Pymodaq_ENV_NAME python=3.12.0
-    $ conda deactivate
-    $ conda activate Pymodaq_ENV_NAME
-    $ conda install pyqt
-    $ pip install pymodaq==4.0.11
+</pre></div>
+</div>
+<p>Then, run the following sequence:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ conda create --name Pymodaq_ENV_NAME python=3.8
+$ conda deactivate
+$ conda activate Pymodaq_ENV_NAME
+$ conda install pyqt
+$ pip install pymodaq==4.0.11
 </pre></div>
 </div>
 <div class="admonition note">
@@ -115,49 +119,71 @@ Moreover, all the tests have been made in a virtual anaconda environment.</p>
 $ pip install package_name==version
 </pre></div>
 </div>
-<p>Pymodaq 4.0.11 and python 3.12.0, used during the tests, work well.</p>
+<p>Python 3.8 and Pymodaq 4.0.11 are the ones used during the tests.</p>
 </div>
-</section>
-<section id="pymodaq-plugin-keithley2700">
-<h2><span class="section-number">1.2. </span>Pymodaq plugin: keithley2700<a class="headerlink" href="#pymodaq-plugin-keithley2700" title="Link to this heading"></a></h2>
-<p>This plugin is designed to interact with a Keithley 2700 Multimeter/Switch System.
-It enables you to remotly control your instrument and acquire data (e.g. voltages,temperatures..)</p>
-<section id="plugin-installation">
-<h3><span class="section-number">1.2.1. </span>Plugin installation<a class="headerlink" href="#plugin-installation" title="Link to this heading"></a></h3>
-<p>To install a custom plugin, you need to pip install it in your environment directory:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cd C:\Users\[...]\Pymodaq_ENV_NAME
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Pymodaq requires the python package pyqt, don’t forget it !</p>
+</div>
+<p>One Pymodaq installed, you will now need to install plugins according to the instrument you use.
+The plugin manager list all the plugins available on <a class="reference external" href="https://github.com/PyMoDAQ/pymodaq_plugin_manager">https://github.com/PyMoDAQ/pymodaq_plugin_manager</a>.
+If you want to use a custom plugin, you need to pip install it in your working environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cd &lt;PATH_TO_YOUR_ENV&gt;\Pymodaq_ENV_NAME
 $ pip install PLUGIN_NAME (type: pymodaq_plugin_device)
 </pre></div>
 </div>
-<p>So for the Keithley2700:</p>
+</section>
+<section id="keithley-2700-multimeter">
+<h2><span class="section-number">1.2. </span>Keithley 2700 Multimeter<a class="headerlink" href="#keithley-2700-multimeter" title="Permalink to this heading"></a></h2>
+<p>This section focus on the Pymodaq keithley2700 plugin which is designed to interact with a Keithley 2700 Multimeter/Switch System.
+It enables you to remotly control the instrument and acquire data (e.g. voltages,temperatures..)</p>
+<section id="plugin-installation">
+<h3><span class="section-number">1.2.1. </span>Plugin installation<a class="headerlink" href="#plugin-installation" title="Permalink to this heading"></a></h3>
+<p>The pymodaq_plugin_keithley2700 package is available <a class="reference external" href="https://git-cethil.insa-lyon.fr/instrumentation/Cethil-Acquisition/-/tree/master/Keithley2700/pymodaq_plugins_keithley2700?ref_type=heads">here</a>:</p>
+<p>Once downloaded, extract the package in the local repository you want, and install it:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install pymodaq_plugin_keithley2700
-$ pip install pyvisa                #Needed for Keithley2700 plugin
+$ pip install pyvisa
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The plugin requires the python package pyvisa.</p>
 </div>
 </section>
 <section id="instrument-control">
-<h3><span class="section-number">1.2.2. </span>Instrument control<a class="headerlink" href="#instrument-control" title="Link to this heading"></a></h3>
+<h3><span class="section-number">1.2.2. </span>Instrument control<a class="headerlink" href="#instrument-control" title="Permalink to this heading"></a></h3>
 <ul>
+<li><dl class="simple">
+<dt>Hardware</dt><dd><ul class="simple">
 <li><p>Connect the Keithley power supply cable</p></li>
-<li><p>Connect the Keithley to the PC (RS232 connexion)</p></li>
+<li><p>Connect the Keithley to the PC (RS232 connexion is the only one supported at this point, later will be implemented GPIB/TCIP)</p></li>
 <li><p>Power on the Keithley</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Software</dt><dd><ul>
 <li><p>Launch Pymodaq dashboard running (in your dedicated environmnent) the command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ dashboard
 </pre></div>
 </div>
 </li>
-<li><dl class="simple">
-<dt>Load existing preset, if not, you can create a new one:</dt><dd><ul class="simple">
-<li><p>No actuator</p></li>
-<li><p>1 Detector (0D for sample visualization, 1D for temporal plots but not fully implemented)</p></li>
 </ul>
-</dd>
-</dl>
-</li>
+<p>This window should open (if not, please check carefully the previous installation procedure, you may have installed the wrong version or miss a necessary package):</p>
+<a class="reference internal image-reference" href="../_images/pymodaq_dashboard.PNG"><img alt="../_images/pymodaq_dashboard.PNG" src="../_images/pymodaq_dashboard.PNG" style="width: 1000px;" /></a>
+<ul class="simple">
+<li><p>Load existing preset, if not, you can create a new one as shown below:</p></li>
+</ul>
+<ul>
 <li><p>The daq_viewer window open automaticaly when loading preset. Instead of using the dashboard, you can run it directly through your prompt running:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ daq_viewer
 </pre></div>
 </div>
+</li>
+</ul>
+</dd>
+</dl>
 </li>
 </ul>
 </section>

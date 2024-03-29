@@ -3,7 +3,7 @@ End User documentation
 ======================
 
 This documentation targets basic user.
-It describes how to use the keithley 2700 pymodaq plugin, from the installation of Pymodaq to the data acquisition and visualization.
+It describes how to use Pymodaq and the instruments dedicated plugins, from the installation to the data acquisition and visualization.
 
 .. include:: pymodaq.rst
 

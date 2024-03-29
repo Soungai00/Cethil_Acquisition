@@ -11,10 +11,13 @@ https://www.anaconda.com/
 
 In the same way, it is recommended to create a dedicated environment to install Pymodaq and work with.
 
-To do so, open a command prompt & run the following sequence (By opening an Anaconda3 prompt directly, skip the first line)::
+To do so, either open an Anaconda3 prompt directly or open a command prompt and run::
 
     $ C:\Anaconda3\condabin\activate.bat
-	$ conda create --name Pymodaq_ENV_NAME python=3.12.0
+
+Then, run the following sequence::
+
+	$ conda create --name Pymodaq_ENV_NAME python=3.8
 	$ conda deactivate
 	$ conda activate Pymodaq_ENV_NAME
 	$ conda install pyqt
@@ -26,6 +29,14 @@ To do so, open a command prompt & run the following sequence (By opening an Anac
         $ conda install package_name=version
         $ pip install package_name==version
 
-    Pymodaq 4.0.11 and python 3.12.0, used during the tests, work well.
+    Python 3.8 and Pymodaq 4.0.11 are the ones used during the tests.
 
+.. note::
+    Pymodaq requires the python package pyqt, don't forget it !
 
+One Pymodaq installed, you will now need to install plugins according to the instrument you use.
+The plugin manager list all the plugins available on https://github.com/PyMoDAQ/pymodaq_plugin_manager.
+If you want to use a custom plugin, you need to pip install it in your working environment::
+
+    $ cd <PATH_TO_YOUR_ENV>\Pymodaq_ENV_NAME
+    $ pip install PLUGIN_NAME (type: pymodaq_plugin_device)

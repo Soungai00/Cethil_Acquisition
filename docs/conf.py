@@ -8,7 +8,8 @@
 import os
 import sys
 # sys.path.insert(0, os.path.abspath('..')) #No need while only documenting Keithley2700
-sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src\pymodaq_plugins_keithley2700'))
+sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src'))
+#sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src\pymodaq_plugins_keithley2700'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -21,10 +22,18 @@ release = '1.0.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.todo',
-              'sphinx.ext.viewcode',
-              'sphinx.ext.autodoc', # Core library for html generation from docstrings
+extensions = ["sphinx.ext.todo",
+              "sphinx.ext.viewcode",
+              "sphinx.ext.autodoc", # Core library for html generation from docstrings
+              "sphinx.ext.graphviz",
+              "sphinx.ext.inheritance_diagram"
               ]
+
+autodoc_default_options = {'members': True,
+                           'special-members': '__init__',
+                           }
+
+inheritance_graph_attrs = dict(rankdir="TB", size='""')
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

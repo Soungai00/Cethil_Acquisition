@@ -18,17 +18,18 @@ pymodaq_plugins_keithley2700
 .. image:: https://github.com/PyMoDAQ/pymodaq_plugins_template/actions/workflows/Test.yml/badge.svg
     :target: https://github.com/PyMoDAQ/pymodaq_plugins_template/actions/workflows/Test.yml
 
-
-PyMoDAQ plugin for Keithley 2700 Multimeter/Switch System
-
+PyMoDAQ plugin for Keithley 2700 Multimeter/Switch System using SCPI commands.
 
 Authors
 =======
 
 * Sébastien Guerrero  (sebastien.guerrero@insa-lyon.fr)
+
+Contributors
+============
+
 * Loïc Guilmard (loic.guilmard@insa-lyon.fr)
 * Anthony Buthod (anthony.buthod@insa-lyon.fr)
-
 
 Instruments
 ===========
@@ -38,27 +39,15 @@ Below is the list of instruments included in this plugin
 Viewer0D
 ++++++++
 
-* **yyy**: control of yyy 0D detector
-* **xxx**: control of xxx 0D detector
+* **Keithley2700**: control of yyy 0D detector
 
 Viewer1D
 ++++++++
 
-* **yyy**: control of yyy 1D detector
-* **xxx**: control of xxx 1D detector
-
-
-PID Models
-==========
-
-
-Extensions
-==========
+* **Keithley2700**: control of yyy 1D detector
 
 
 Installation instructions
 =========================
 
-* PyMoDAQ’s version.
-* Operating system’s version.
-* What manufacturer’s drivers should be installed to make this plugin run?
+* PyMoDAQ’s version: 4.0.11

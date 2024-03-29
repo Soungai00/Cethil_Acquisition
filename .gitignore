@@ -1,4 +1,5 @@
 .conda/
 docs/_build
+__pycache__/
 Keithley2700_data_det0D.txt
 Keithley2700_data_det1D.txt

@@ -1,44 +1,12 @@
-import pyvisa as visa
 import numpy as np
+import pyvisa as visa
 import time
-import configparser
-
-# Read configuration file
-config = configparser.ConfigParser()
-
-# ABSOLUTE PATH needed
-config.read('C:\\Users\\sguerrero\\Documents\\git\\Cethil-Acquisition\\.conda\\pymodaq_env\\Lib\\site-packages\\pymodaq_plugins_keithley2700\\k2700config.ini')
-
-# Non-amps modules
-non_amp_modules_list = ['7701','7703','7706','7707','7708','7709']
-if config['INSTRUMENT']['modules'] in non_amp_modules_list:
-    non_amp_module = True
-
-# Termination character
-if config['INSTRUMENT']['termination'] == 'CR':
-    termination = '\r'
-elif config['INSTRUMENT']['termination'] == 'LF':
-    termination = '\n'
-elif config['INSTRUMENT']['termination'] == 'CRLF':
-    termination = '\r\n'
-elif config['INSTRUMENT']['termination'] == 'LFCR':
-    termination = '\n\r'
-
-# Channels list
-channels_list = config['PARAMETERS']['chan_to_read'].split(",")
-# Modes list
-modes_list = config['PARAMETERS']['chan_mode'].upper().split(",")
-if len(channels_list)!=len(modes_list):
-    raise ValueError("Number of defined modes doesn't match the number of channels")
-modes_list = [v.replace('V','VOLT:') for v in modes_list]
-modes_list = [i.replace('I','CURR:') for i in modes_list]
-modes_list = [r2.replace('R2W','RES') for r2 in modes_list]
-modes_list = [r4.replace('R4W','FRES') for r4 in modes_list]
+from pymodaq_plugins_keithley2700 import config as k2700config
 
 class Keithley2700VISADriver:
     """VISA class driver for the Keithley 2700 Multimeter/Switch System
 
-    This class relies on pyvisa module to communicate with the instrument via VISA protocol
+    This class relies on pyvisa module to communicate with the instrument via VISA protocol.
     Please refer to the instrument reference manual available at:
     https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf
 
@@ -47,66 +15,146 @@ class Keithley2700VISADriver:
     def __init__(self, rsrc_name, pyvisa_backend='@ivi'):
         """Initialize Keithley2700VISADriver class
 
-        Parameters
-        ----------
-        rsrc_name:  string
-            VISA Resource name
-        pyvisa_backend: string
-            Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
+        :param rsrc_name: VISA Resource name
+        :type rsrc_name: string
+
+        :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
+        :type pyvisa_backend: string
         
+        :attribute _instr: Resource name opened by resource manager
+        :type _instr: pyvisa.resources.serial.SerialInstrument
         """
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
         self._instr = rm.open_resource(rsrc_name)
+        self._instr.timeout = 10000
 
-        # Config of the termination character
-        self._instr.write_termination = termination
-        self._instr.read_termination = termination
-        # For scanning, timeout needs to be higher
-        self._instr.timeout = 5000
+        # Termination character
+        termination_dictionary = {'CR':'\r','LF':'\n','CRLF':'\r\n','LFCR':'\n\r'}
+        self._instr.write_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination'))
+        self._instr.read_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination'))
 
-    def close(self):
-        self._instr.close()
+        # Non-amps modules
+        self.non_amp_module = False
+        non_amp_modules_list = [7701,7703,7706,7707,7708,7709]
+        if k2700config('MODULE','module_name') in non_amp_modules_list:
+            self.non_amp_module = True
 
-    def reset(self):
-        # Clear measurement event register
-        self._instr.write("*CLS")
-        # One-shot measurement mode (Equivalent to INIT:COUNT OFF)
-        self._instr.write("*RST")
+        # Channels used
+        self.channels_scanlist = ''
+        self.modes_channels_dict = {'VOLT:DC':[],'VOLT:AC':[],'CURR:DC':[],'CURR:AC':[],'RES':[],'FRES':[],'FREQ':[],'TEMP':[]}
+        self.sample_count_1 = False
+
+    def configuration_sequence(self):
+        """Configure each channel selected by the user
+
+        Read the configuration file to get the channels used and their configuration, and send the keithley a sequence allowing to set up each channel.
+        
+        :raises TypeError: Channel section of configuration file not correctly defined, each channel should be a dictionary
+        :raises ValueError: Channel not correctly defined, it should at least contain a key called "mode"
+
+        """
+        print('\n********** CONFIGURATION SEQUENCE INITIALIZED **********')
+        print('Acquisition card = ', k2700config('MODULE','module_name'))
+
+        self.reset()
+        self.clear_buffer()
+        channels = ''
+
+        # The following loop set up each channel in the config file
+        for key in k2700config('CHANNELS').keys():
+
+            # Raise error if the channels config section is not correctly set up by the user
+            if not type(k2700config('CHANNELS',key))==dict:
+                raise TypeError("Channel %s not correctly defined, should be a dict" % key)
+            if not "mode" in k2700config('CHANNELS',key):
+                print("Channel %s not fully defined, 'mode' is missing" % key)
+                continue
+
+            # Channel mode
+            mode = k2700config('CHANNELS',key).get('mode').upper()
+            self.modes_channels_dict[mode].append(int(key))
+            channel = '(@' + key + ')'
+            channels += key + ","
+            cmd = "FUNC '" + mode + "'," + channel
+            self._instr.write(cmd)
+
+            # Console info
+            print('Channel %s \n %s' % (key,k2700config('CHANNELS',key)))
+
+            # Config
+            if 'range' in k2700config('CHANNELS',key).keys():
+                range = k2700config('CHANNELS',key).get('range')
+                if 'autorange' in str(range):
+                    self._instr.write(mode + ':RANG:AUTO ')
+                else:
+                    self._instr.write(mode + ':RANG ' + str(range))
+                    
+            if 'resolution' in k2700config('CHANNELS',key).keys():
+                resolution = k2700config('CHANNELS',key).get('resolution')
+                self._instr.write(mode + ':DIG ' + str(resolution))
+
+            if 'nplc' in k2700config('CHANNELS',key).keys():
+                nplc = k2700config('CHANNELS',key).get('nplc')
+                self._instr.write(mode + ':NPLC ' + str(nplc))
+
+            if "TEMP" in mode:
+                transducer = k2700config('CHANNELS',key).get('transducer').upper()
+                if "TC" in transducer:
+                    tc_type = k2700config('CHANNELS',key).get('type').upper()
+                    ref_junction = k2700config('CHANNELS',key).get('ref_junction').upper()
+                    self.mode_temp_tc(channel,transducer,tc_type,ref_junction)
+                elif "THER":
+                    ther_type = k2700config('CHANNELS',key).get('type').upper()
+                    self.mode_temp_ther(channel,transducer,ther_type)
+                elif "FRTD":
+                    frtd_type = k2700config('CHANNELS',key).get('type').upper()
+                    self.mode_temp_frtd(channel,transducer,frtd_type)
+
+            # Timeout update for long measurement modes such as voltage AC
+            if "AC" in mode:
+                self._instr.timeout += 4000
+            # Handling errors
+            current_error = self.get_error()
+            try:
+                if current_error != '0,"No error"':
+                    raise ValueError("The following error has been raised by the Keithley: %s => Pease refer to the User Manual to correct it\n\
+                                     Note: To make sure channels are well configured in the .toml file, refer to section 15 'SCPI Reference Tables', Table 15-5" % current_error)
+            except Exception as e:
+                print(e)
+                pass
+
+        self.channels_scanlist =  channels[:-1]
+        print('********** CONFIGURATION SEQUENCE SUCCESSFULLY ENDED **********\n')
 
     def clear_buffer(self):
         # Default: auto clear when scan start
         self._instr.write("TRAC:CLE")
 
+    def clear_buffer_off(self):
+        # Disable buffer auto clear
+        self._instr.write("TRAC:CLE:AUTO OFF")
+
     def clear_buffer_on(self):
         # Disable buffer auto clear
         self._instr.write("TRAC:CLE:AUTO ON")
 
-    def clear_buffer_off(self):
-        # Disable buffer auto clear
-        self._instr.write("TRAC:CLE:AUTO OFF")
-    
-    def initconton(self):
-        # Enable continuous initiation
-        self._instr.write("INIT:CONT ON")
+    def close(self):
+        self._instr.close()
 
-    def initcontoff(self):
-        # Disable continuous initiation
-        self._instr.write("INIT:CONT OFF")
-
-    def get_idn(self):
-        # Query identification
-        return self._instr.query("*IDN?")
-    
-    def read(self):
-        # Read command performs 3 actions (equivalent to ABORT,INIT,FETCH?)
-        str_answer = self._instr.query("READ?")
+    def data(self):
+        # Initiate scan
+        self._instr.write("INIT")
+        # Trigger scan
+        if self.sample_count_1 == False:
+            self._instr.write("*TRG")
+        # Get data from buffer (equivalent to FETCH?)
+        str_answer = self._instr.query("FETCH?")
         # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
         list_split_answer = str_answer.split(",")
 
-        # MEASUREMENT
+        # MEASUREMENT & TIME EXTRACTION
         list_measurements = list_split_answer[::3]
         str_measurements = ''
-        # TIME
         list_times = list_split_answer[1::3]
         str_times = ''
         for j in range(len(list_measurements)):
@@ -131,181 +179,136 @@ class Keithley2700VISADriver:
                     else:
                         str_times += list_times[j][:-l]
                     break
-        
+
         # Split created string to access each value
         list_measurements_values = str_measurements.split(",")
         list_times_values = str_times.split(",")
         # Create numpy.array containing desired values (float type)
         array_measurements_values = np.array(list_measurements_values,dtype=float)
-        array_times_values = np.array(list_times_values,dtype=float)
-        # array_values = np.c_[array_measurements_values,array_times_values]
+        print('self sample count ',self.sample_count_1)
+        if self.sample_count_1 != True:
+            array_times_values = np.array(list_times_values,dtype=float)
+        else:
+            array_times_values = np.array([0],dtype=float)
 
         return str_answer,array_measurements_values,array_times_values
-        # return str_answer,array_values
 
-    def fetch(self):
-        # Return the latest available reading
-        str_answer = self._instr.query("FETCH?")
-        # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
-        list_split_answer = str_answer.split(",")
-
-        # MEASUREMENT
-        list_measurements = list_split_answer[::3]
-        str_measurements = ''
-        for j in range(len(list_measurements)):
-            if not j==0:
-                str_measurements += ','
-            for l in range(len(list_measurements[j])):
-                test_carac = list_measurements[j][-(l+1)]
-                # Remove non-digit characters (units)
-                if test_carac.isdigit() == True:
-                    if l==0:   
-                        str_measurements += list_measurements[j]
-                    else:
-                        str_measurements += list_measurements[j][:-l]
-                    break
-        # Split the created string to access each value
-        list_measurements_values = str_measurements.split(",")
-        # Create a numpy.array containing desired values (float type)
-        array_measurements_values = np.array(list_measurements_values,dtype=float)
-
-        return str_answer,array_measurements_values
-
-    def data(self):
-        str_answer = self._instr.query("TRAC:DATA?")
-        # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
-        list_split_answer = str_answer.split(",")
-
-        # MEASUREMENT
-        list_measurements = list_split_answer[::3]
-        str_measurements = ''
-        for j in range(len(list_measurements)):
-            if not j==0:
-                str_measurements += ','
-            for l in range(len(list_measurements[j])):
-                test_carac = list_measurements[j][-(l+1)]
-                # Remove non-digit characters (units)
-                if test_carac.isdigit() == True:
-                    if l==0:   
-                        str_measurements += list_measurements[j]
-                    else:
-                        str_measurements += list_measurements[j][:-l]
-                    break
-        # Split the created string to access each value
-        list_measurements_values = str_measurements.split(",")
-        # Create a numpy.array containing desired values (float type)
-        array_measurements_values = np.array(list_measurements_values,dtype=float)
-
-        return str_answer,array_measurements_values
-    
     def define_input(self, input):
         return str(input)
     
+    def get_error(self):
+        # Ask the keithley to return the last current error
+        return self._instr.query("SYST:ERR?")
+    
+    def get_idn(self):
+        # Query identification
+        return self._instr.query("*IDN?")
+    
+    def initcontoff(self):
+        # Disable continuous initiation
+        self._instr.write("INIT:CONT OFF")
+        
+    def initconton(self):
+        # Enable continuous initiation
+        self._instr.write("INIT:CONT ON")
+
+    def mode_temp_frtd(self,channel,transducer,frtd_type,):
+        self._instr.write("TEMP:TRAN " + transducer + "," + channel)
+        self._instr.write("TEMP:FRTD:TYPE " + frtd_type + "," + channel)
+
+    def mode_temp_tc(self,channel,transducer,tc_type,ref_junction):
+        self._instr.write("TEMP:TRAN " + transducer + "," + channel)
+        self._instr.write("TEMP:TC:TYPE " + tc_type + "," + channel)
+        self._instr.write("TEMP:RJUN:RSEL " + ref_junction + "," + channel)
+
+    def mode_temp_ther(self,channel,transducer,ther_type,):
+        self._instr.write("TEMP:TRAN " + transducer + "," + channel)
+        self._instr.write("TEMP:THER:TYPE " + ther_type + "," + channel)
+    
+    def reset(self):
+        # Clear measurement event register
+        self._instr.write("*CLS")
+        # One-shot measurement mode (Equivalent to INIT:COUNT OFF)
+        self._instr.write("*RST")
+
+    def set_mode(self, mode):
+        """Define whether the Keithley will scan all the scanlist or only channels in the selected mode
+
+        :param mode: Measurement configuration ('SCAN_LIST', 'VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ' and 'TEMP' modes are supported)
+        :type mode: string
+
+        """
+        mode = mode.upper()
+        mode_dictionary = {'VDC':'VOLT:DC','VAC':'VOLT:AC','IDC':'CURR:DC','IAC':'CURR:AC',
+                           'R2W':'RES','R4W':'FRES','FREQ':'FREQ','TEMP':'TEMP'}
+        
+        # FRONT panel
+        if "SCAN" not in mode:
+            mode_to_read = mode_dictionary.get(mode)
+            self._instr.write("FUNC " + mode_to_read)
+
+        # REAR panel
+        else:
+            self.clear_buffer()
+            # Init contiuous disabled
+            self.initcontoff()
+            mode = mode[5:]
+            if 'SCAN_LIST' in mode:
+                self.sample_count_1 = False
+                channels = '(@' + self.channels_scanlist + ')'
+                print('scan list = ',channels)
+                # Set to perform 1 to INF scan(s)
+                self._instr.write("TRIG:COUN 1")
+                # Trigger immediately after previous scan end if IMM
+                self._instr.write("TRIG:SOUR BUS")
+                # Set to scan <n> channels
+                samp_count = 1 + channels.count(',')
+                self._instr.write("SAMP:COUN "+str(samp_count))
+                # Set scan list channels
+                self._instr.write("ROUT:SCAN " + channels)
+                # Start scan immediately when enabled and triggered
+                self._instr.write("ROUT:SCAN:TSO IMM")
+                # Enable scan
+                self._instr.write("ROUT:SCAN:LSEL INT")
+
+
+            else:
+                mode_to_read = mode_dictionary.get(mode)
+                # Select channels in the channels list (config file) matching the requested mode
+                channels = '(@' + str(self.modes_channels_dict.get(mode_to_read))[1:-1] + ')'
+                # Set to perform 1 to INF scan(s)
+                self._instr.write("TRIG:COUN 1")
+                # Set to scan <n> channels
+                samp_count = 1+channels.count(',')
+                self._instr.write("SAMP:COUN "+str(samp_count))
+                print('sam count ',samp_count)
+                if samp_count == 1:
+                    self.sample_count_1 = True
+                else:
+                    self.sample_count_1 = False
+                    # Trigger definition
+                    self._instr.write("TRIG:SOUR BUS")
+                    # Set scan list channels
+                    self._instr.write("ROUT:SCAN " + channels)
+                    # Start scan immediately when enabled and triggered
+                    self._instr.write("ROUT:SCAN:TSO IMM")
+                    # Enable scan
+                    self._instr.write("ROUT:SCAN:LSEL INT")
+                
+            return(channels)
+        
     def stop_acquisition(self):
         # If scan in process, stop it
         self._instr.write("ROUT:SCAN:LSEL NONE")
 
-    def set_mode(self, mode, **kwargs):
-        """
-
-        Parameters
-        ----------
-        mode : string
-            Measurement configuration ('VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ' and 'TEMP' modes are supported)
-        kwargs :  dict
-            Used to pass optional arguments
-            - Autorange "RANG:AUTO <b>" <b> = ON/OFF
-            - Range ":RANG: <n>"
-            - Display resolution ":DIG <n>" <n> = 3.5, 4.5, 5.5 or 6.5
-            - Number of power line cycles ":NPLC <n>"
-
-        """
-        cmd = 'FUNC '
-        if "VDC" in mode:
-            cmd += "'VOLT:DC'"
-            conf = "VOLT"
-        elif "VAC" in mode:
-            cmd += "'VOLT:AC'"
-            conf = "VOLT"
-        elif "IDC" in mode:
-            cmd += "'CURR:DC'"
-            conf = "CURR"
-        elif "IAC" in mode:
-            cmd += "'CURR:AC'"
-            conf = "CURR"
-        elif "R2W" in mode:
-            cmd += "'RES'"
-            conf = "RES"
-        elif "R4W" in mode:
-            cmd += "'FRES'"
-            conf = "FRES"
-        elif "FREQ" in mode:
-            cmd += "'FREQ'"
-            conf = "FREQ"
-        elif "TEMP" in mode:
-            cmd += "'TEMP'"
-            conf = "TEMP"
-        
-        # Instructions to be sent to the keithley
-
-        # FRONT panel
-        if "SCAN" not in mode:
-            self._instr.write(cmd)
-        # Config
-        if 'range' in kwargs.keys():
-            self._instr.write(conf+':RANG '+str(kwargs['range']))
-        if 'autorange' in kwargs.keys():
-            self._instr.write(conf+':RANG:AUTO '+str(kwargs['autorange']))
-        if 'resolution' in kwargs.keys():
-            self._instr.write(conf+':DIG '+str(kwargs['resolution']))
-        if 'NPLC' in kwargs.keys():
-            self._instr.write(conf+':NPLC '+str(kwargs['NPLC']))
-
-        # REAR panel
-        else:
-            self.reset()
-            self.clear_buffer()
-
-            # Select channels in the channels list (config file) matching the requested mode
-            chan_to_read =''
-            try:
-                for i in range(len(modes_list)):
-                    if modes_list[i] == cmd[6:-1]:
-                        if not chan_to_read == '':
-                            chan_to_read+=','
-                        chan_to_read+=channels_list[i]
-            except ValueError:
-                raise ValueError("Selected mode doesn't match any of the ones requested in the configuration file")
-            
-            # Channel(s) to read
-            channels = '(@' + chan_to_read + ')'
-            cmd += "," + channels
-            print('SCPI command sent to the keithley:',cmd)
-            self._instr.write(cmd)
-            if "SCAN_TEMP" in mode:
-                self._instr.write("TEMP:TRAN TC," + channels)
-                self._instr.write("TEMP:TC:TYPE K," + channels)
-                self._instr.write("TEMP:RJUN:RSEL INT," + channels)
-            # Set scan list channels
-            self._instr.write("ROUT:SCAN " + channels)
-            # Start scan immediately when enabled and triggered
-            self._instr.write("ROUT:SCAN:TSO IMM")
-            # Enable scan
-            self._instr.write("ROUT:SCAN:LSEL INT")
-            # Test init contiuous disabled
-            self.initcontoff()
-            # Set to perform 1 to INF scan(s)
-            self._instr.write("TRIG:COUN 1")
-            # Set to scan <n> channels
-            samp_count = 1+channels.count(',')
-            self._instr.write("SAMP:COUN "+str(samp_count))
-            # Trigger immediately after previous scan end
-            self._instr.write("TRIG:SOUR IMM")
-            # Use timmer to trigger <n> seconds after previous scan end
-            # k2700._instr.write("TRIG:SOUR TIM")
-            # k2700._instr.write("TRIG:TIM 0.01")
-            return(chan_to_read)
-
+    def user_command(self):
+        command = input('Enter here a command you want to send directly to the Keithley [if None, press enter]: ')
+        if command != '':
+            if command[-1] == "?":
+                print(k2700._instr.query(command))
+            else:
+                k2700._instr.write(command)
+            command = self.user_command()
 
 if __name__ == "__main__":
     try:
@@ -314,136 +317,16 @@ if __name__ == "__main__":
         k2700 = Keithley2700VISADriver("ASRL1::INSTR")
         print("IDN?")
         print(k2700.get_idn())
-
-
-        # SETTINGS
-        ##########
-        # k2700.set_mode("VDC", range=0.1, resolution=4.5, NPLC=3)
-        # k2700.set_mode("VAC", autorange="on", resolution=6.5)
-        # k2700.set_mode("IDC", autorange="off", resolution="MIN")
-        # k2700.set_mode("IAC", range=10, resolution="MAX")
-        # k2700.set_mode("Ohm2")
-        # k2700.set_mode("R4W")
-        # k2700.set_mode("FREQ")
-        # k2700.set_mode("TEMP")
-
-
-        # CONTINUOUS TRIGGERING TEST
-        ############################
-        # k2700._instr.write("SYST:PRES")
-        # k2700._instr.write("FUNC 'TEMP'")
-        # print(k2700._instr.query("DATA?"))
-
-
-        # ONE-SHOT TRIGGERING TEST
-        # ########################
-        # k2700.reset()
-        # k2700.set_mode("TEMP")
-        # print("Variable's type returned by read function: ",type(k2700._instr.query("READ?"))
-        # print(k2700._instr.query("READ?"))
-        # k2700.set_mode("Ohm2")
-        # k2700._instr.write("RES:RANG 1e3")
-        # print(k2700._instr.query("READ?"))
-
-
-        # MODEL 7700 SWITCHING MODULE TESTS
-        # #################################
-        # One-shot measurement mode
-        # k2700.reset()
-        # Select temp function
-        # k2700.set_mode("TEMP")
-        # Select thermocouple transducer
-        # k2700._instr.write("TEMP:TRAN TC")
-        # Select type K thermocouple
-        # k2700._instr.write("TEMP:TC:TYPE K")
-        # Select internal junction
-        # k2700._instr.write("TEMP:RJUN:RSEL INT")
-        # Close channel(s)
-        # k2700._instr.write("ROUT:CLOS " + channels)
-        # Trigger one measurement
-        # k2700._instr.write("INIT")
-        # Return measured reading
-        # print("One-shot measurement DATA: ",k2700._instr.query("DATA?"))
-
-
-        # MODEL 7700 SCAN CONFIGURATION TESTS
-        # ###################################
+        
         k2700.reset()
+        k2700.configuration_sequence()
+        k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
+        print('Manual scan example: >init >*trg >trac:data?')
+        k2700.user_command()
 
-        # Channel(s) to read
-        channels = '(@' + config['PARAMETERS']['chan_to_read'] + ')'
-
-        # Temperature tests
-        k2700._instr.write("FUNC 'TEMP', " + channels)
-        k2700._instr.write("TEMP:TRAN TC, " + channels)
-        k2700._instr.write("TEMP:TC:TYPE K, " + channels)
-        k2700._instr.write("TEMP:RJUN:RSEL INT, " + channels)
-
-        # Voltage tests
-        # k2700._instr.write("FUNC 'VOLT:DC', " + channels)
-
-        # Set scan list channels
-        # k2700._instr.write("ROUT:SCAN " + channels)
-        k2700._instr.write("ROUT:SCAN (@101,102)")
-        print('Rout scan ? :', k2700._instr.query("ROUT:SCAN?"))
-        # Start scan immediately when enabled and triggered, default : IMM
-        k2700._instr.write("ROUT:SCAN:TSO IMM")
-        # Enable scan
-        k2700._instr.write("ROUT:SCAN:LSEL INT")
-        k2700.clear_buffer()
-
-        # IF INIT COUNT OFF
-        k2700.initcontoff()
-        # Set to perform 1 to INF scan(s)
-        k2700._instr.write("TRIG:COUN 1")
-        # Set to scan <n> channels
-        samp_count = 1+channels.count(',')
-        # k2700._instr.write("SAMP:COUN "+str(samp_count))
-        k2700._instr.write("SAMP:COUN 2")
-        # Trigger immediately after previous scan end
-        k2700._instr.write("TRIG:SOUR IMM")
-        # Use timmer to trigger <n> seconds after previous scan end
-        # k2700._instr.write("TRIG:SOUR TIM")
-        # k2700._instr.write("TRIG:TIM 5")
-
-        # Set buffer parameters
-        # k2700._instr.write("TRAC:POIN 20")
-        # k2700._instr.write("TRAC:FEED SENS")
-        # k2700._instr.write("TRAC:FEED:CONT NEXT")
-
-        # EITHER
-        # # Initiate scan cycle(s)
-        # k2700._instr.write("INIT")
-        # # Need to wait until buffer is filled before reading data
-        # time.sleep(3)
-        # # Return data stored in the buffer (if more than 1 cycle, only last cycle
-        # # because each scan clear buffer)
-        # data = k2700.data()[0]
-        # print("All data from buffer, empty if no time sleep:")
-        # print(data)
-        # datavalue = k2700.data()[1]
-        # print("Values from buffer:")
-        # print(datavalue)
-
-        # OR
-        # Each READ command initiate one scan cycle and request sample readings
-        print("Below a loop with the query READ? :")
         for i in range(2):
-            print('string with all data :', k2700.read()[0])
-            print('string with values only :', k2700.read()[1])
-
-
-        # # IF INIT COUNT ON
-        # k2700.initconton()
-        # k2700._instr.write("SAMP:COUN 1")
-        # # Read last reading
-        # for i in range(3):
-        #     data = k2700.fetch()[1]
-        #     print("Reading:\n",data)
-        #     time.sleep(2)
-
-        # Stop the scan
-        # k2700._instr.write("ROUT:SCAN:LSEL NONE")
+            print(k2700.data())
+        print(k2700.data())
 
         k2700.clear_buffer()
         k2700.close()

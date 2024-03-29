@@ -32,8 +32,7 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
     Attributes:
     -----------
     controller: object
-        The particular object that allow the communication with the hardware, in general a python wrapper around the
-         hardware library.
+        The particular object that allow the communication with the hardware, in general a python wrapper around the hardware library.
     params: dictionnary list
     x_axis: 1D numpy array
     mode: str
@@ -95,17 +94,21 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
     def ini_detector(self, controller=None):
         """Detector communication initialization
 
-        Parameters
-        ----------
-        controller: (object)
-            custom object of a PyMoDAQ plugin (Slave case). None if only one actuator/detector by controller
-            (Master case)
+        :param controller: Custom object of a PyMoDAQ plugin (Slave case). None if only one actuator/detector by controller (Master case)
+        :type controller: object
 
-        Returns
-        -------
-        info: str
-        initialized: bool
-            False if initialization failed otherwise True
+
+        :return: info
+        :rtype: str
+
+        :return: info
+        :rtype: str
+
+        :return: initialized
+        :rtype: bool
+
+        :return: False if initialization failed otherwise True
+        
         """
         print('Detector : 1D')
         print('Channels :', channels)

@@ -1,21 +1,4 @@
-hardware package
-================
+hardware module
+===============
 
-Submodules
-----------
-
-hardware.keithley2700\_VISADriver module
-----------------------------------------
-
-.. automodule:: hardware.keithley2700_VISADriver
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: hardware
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver

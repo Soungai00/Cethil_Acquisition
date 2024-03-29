@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -7,6 +7,7 @@
   <title>Pymodaq installation &mdash; Cethil Acquisition 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=eafc0fe6" />
 
   
   <!--[if lt IE 9]>
@@ -15,9 +16,9 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=8d563738"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=af2ce170"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -75,7 +76,7 @@
            <div itemprop="articleBody">
              
   <section id="pymodaq-installation">
-<h1>Pymodaq installation<a class="headerlink" href="#pymodaq-installation" title="Link to this heading"></a></h1>
+<h1>Pymodaq installation<a class="headerlink" href="#pymodaq-installation" title="Permalink to this heading"></a></h1>
 <p>Before installing pymodaq, check if anaconda3 is installed on your PC.
 If not, you can download it here:
 <a class="reference external" href="https://www.anaconda.com/">https://www.anaconda.com/</a></p>
@@ -85,13 +86,16 @@ If not, you can download it here:
 Moreover, all the tests have been made in a virtual anaconda environment.</p>
 </div>
 <p>In the same way, it is recommended to create a dedicated environment to install Pymodaq and work with.</p>
-<p>To do so, open a command prompt &amp; run the following sequence (By opening an Anaconda3 prompt directly, skip the first line):</p>
+<p>To do so, either open an Anaconda3 prompt directly or open a command prompt and run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ C:\Anaconda3\condabin\activate.bat
-    $ conda create --name Pymodaq_ENV_NAME python=3.12.0
-    $ conda deactivate
-    $ conda activate Pymodaq_ENV_NAME
-    $ conda install pyqt
-    $ pip install pymodaq==4.0.11
+</pre></div>
+</div>
+<p>Then, run the following sequence:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ conda create --name Pymodaq_ENV_NAME python=3.8
+$ conda deactivate
+$ conda activate Pymodaq_ENV_NAME
+$ conda install pyqt
+$ pip install pymodaq==4.0.11
 </pre></div>
 </div>
 <div class="admonition note">
@@ -101,7 +105,18 @@ Moreover, all the tests have been made in a virtual anaconda environment.</p>
 $ pip install package_name==version
 </pre></div>
 </div>
-<p>Pymodaq 4.0.11 and python 3.12.0, used during the tests, work well.</p>
+<p>Python 3.8 and Pymodaq 4.0.11 are the ones used during the tests.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Pymodaq requires the python package pyqt, don’t forget it !</p>
+</div>
+<p>One Pymodaq installed, you will now need to install plugins according to the instrument you use.
+The plugin manager list all the plugins available on <a class="reference external" href="https://github.com/PyMoDAQ/pymodaq_plugin_manager">https://github.com/PyMoDAQ/pymodaq_plugin_manager</a>.
+If you want to use a custom plugin, you need to pip install it in your working environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cd &lt;PATH_TO_YOUR_ENV&gt;\Pymodaq_ENV_NAME
+$ pip install PLUGIN_NAME (type: pymodaq_plugin_device)
+</pre></div>
 </div>
 </section>
 

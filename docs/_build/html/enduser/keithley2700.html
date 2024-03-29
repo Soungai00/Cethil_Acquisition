@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pymodaq plugin: keithley2700 &mdash; Cethil Acquisition 1.0.0 documentation</title>
+  <title>Keithley 2700 Multimeter &mdash; Cethil Acquisition 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=eafc0fe6" />
 
   
   <!--[if lt IE 9]>
@@ -15,9 +16,9 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=8d563738"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=af2ce170"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -64,7 +65,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Pymodaq plugin: keithley2700</li>
+      <li class="breadcrumb-item active">Keithley 2700 Multimeter</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/enduser/keithley2700.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -74,46 +75,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="pymodaq-plugin-keithley2700">
-<h1>Pymodaq plugin: keithley2700<a class="headerlink" href="#pymodaq-plugin-keithley2700" title="Link to this heading"></a></h1>
-<p>This plugin is designed to interact with a Keithley 2700 Multimeter/Switch System.
-It enables you to remotly control your instrument and acquire data (e.g. voltages,temperatures..)</p>
+  <section id="keithley-2700-multimeter">
+<h1>Keithley 2700 Multimeter<a class="headerlink" href="#keithley-2700-multimeter" title="Permalink to this heading"></a></h1>
+<p>This section focus on the Pymodaq keithley2700 plugin which is designed to interact with a Keithley 2700 Multimeter/Switch System.
+It enables you to remotly control the instrument and acquire data (e.g. voltages,temperatures..)</p>
 <section id="plugin-installation">
-<h2>Plugin installation<a class="headerlink" href="#plugin-installation" title="Link to this heading"></a></h2>
-<p>To install a custom plugin, you need to pip install it in your environment directory:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cd C:\Users\[...]\Pymodaq_ENV_NAME
-$ pip install PLUGIN_NAME (type: pymodaq_plugin_device)
+<h2>Plugin installation<a class="headerlink" href="#plugin-installation" title="Permalink to this heading"></a></h2>
+<p>The pymodaq_plugin_keithley2700 package is available <a class="reference external" href="https://git-cethil.insa-lyon.fr/instrumentation/Cethil-Acquisition/-/tree/master/Keithley2700/pymodaq_plugins_keithley2700?ref_type=heads">here</a>:</p>
+<p>Once downloaded, extract the package in the local repository you want, and install it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install pymodaq_plugin_keithley2700
+$ pip install pyvisa
 </pre></div>
 </div>
-<p>So for the Keithley2700:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install pymodaq_plugin_keithley2700
-$ pip install pyvisa                #Needed for Keithley2700 plugin
-</pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The plugin requires the python package pyvisa.</p>
 </div>
 </section>
 <section id="instrument-control">
-<h2>Instrument control<a class="headerlink" href="#instrument-control" title="Link to this heading"></a></h2>
+<h2>Instrument control<a class="headerlink" href="#instrument-control" title="Permalink to this heading"></a></h2>
 <ul>
+<li><dl class="simple">
+<dt>Hardware</dt><dd><ul class="simple">
 <li><p>Connect the Keithley power supply cable</p></li>
-<li><p>Connect the Keithley to the PC (RS232 connexion)</p></li>
+<li><p>Connect the Keithley to the PC (RS232 connexion is the only one supported at this point, later will be implemented GPIB/TCIP)</p></li>
 <li><p>Power on the Keithley</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Software</dt><dd><ul>
 <li><p>Launch Pymodaq dashboard running (in your dedicated environmnent) the command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ dashboard
 </pre></div>
 </div>
 </li>
-<li><dl class="simple">
-<dt>Load existing preset, if not, you can create a new one:</dt><dd><ul class="simple">
-<li><p>No actuator</p></li>
-<li><p>1 Detector (0D for sample visualization, 1D for temporal plots but not fully implemented)</p></li>
 </ul>
-</dd>
-</dl>
-</li>
+<p>This window should open (if not, please check carefully the previous installation procedure, you may have installed the wrong version or miss a necessary package):</p>
+<a class="reference internal image-reference" href="../_images/pymodaq_dashboard.PNG"><img alt="../_images/pymodaq_dashboard.PNG" src="../_images/pymodaq_dashboard.PNG" style="width: 1000px;" /></a>
+<ul class="simple">
+<li><p>Load existing preset, if not, you can create a new one as shown below:</p></li>
+</ul>
+<ul>
 <li><p>The daq_viewer window open automaticaly when loading preset. Instead of using the dashboard, you can run it directly through your prompt running:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ daq_viewer
 </pre></div>
 </div>
+</li>
+</ul>
+</dd>
+</dl>
 </li>
 </ul>
 </section>

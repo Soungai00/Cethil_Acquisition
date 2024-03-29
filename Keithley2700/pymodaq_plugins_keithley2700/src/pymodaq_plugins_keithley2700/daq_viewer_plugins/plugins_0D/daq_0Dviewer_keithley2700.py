@@ -5,21 +5,20 @@ from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataFromPlugins, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter import Parameter
+
+from pymodaq_plugins_keithley2700 import config as k2700config
 from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithley2700
 from ...hardware.keithley2700_VISADriver import non_amp_module
-import configparser
-
-from pymodaq.utils.parameter.utils import get_param_from_name, get_param_path
-
-
 
 # Read configuration file
-config = configparser.ConfigParser()
-# ABSOLUTE PATH needed
-config.read('C:\\Users\\sguerrero\\Documents\\git\\Cethil-Acquisition\\.conda\\pymodaq_env\\Lib\\site-packages\\pymodaq_plugins_keithley2700\\k2700config.ini')
-rsrc_name = config['INSTRUMENT']['rsrc_name']
-panel = config['INSTRUMENT']['panel'].upper()
-channels = config['PARAMETERS']['chan_to_read']
+
+rsrc_name = k2700config('INSTRUMENT').get('rsrc_name')
+panel = k2700config('INSTRUMENT').get('panel').upper()
+channels = k2700config('CHANNELS').keys()
+
+print(rsrc_name)
+print(panel)
+print('channels : ', channels)
 
 class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     """ Keithley 2700 plugin class for a OD viewer.
@@ -34,8 +33,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     Attributes:
     -----------
     controller: object
-        The particular object that allow the communication with the hardware, in general a python wrapper around the
-         hardware library.
+        The particular object that allow the communication with the hardware, in general a python wrapper around the hardware library.
     params: dictionnary list
     x_axis: 1D numpy array
     mode: str
@@ -55,14 +53,14 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         params = comon_parameters+[
             {'title': 'Keithley2700',  'name': 'K2700Params', 'type': 'group', 'children': [
                 {'title': 'REAR panel', 'name': 'rearpanel', 'type': 'group', 'children': [
-                    {'title': 'Mode', 'name': 'rearmode', 'type': 'list', 'limits': ['VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ', 'TEMP'], 'value': 'VDC'}
+                    {'title': 'Mode', 'name': 'rearmode', 'type': 'list', 'limits': ['SCAN_LIST','VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ', 'TEMP'], 'value': 'SCAN_LIST'}
                 ]}
             ]}
         ]
 
-
     # Remove current measurement from parameters when non-amps modules
     if non_amp_module == True:
+        print('on est bien')
         params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'I' in i]
 
     def __init__(self, parent=None, params_state=None):
@@ -112,11 +110,8 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     def ini_detector(self, controller=None):
         """Detector communication initialization
 
-        Parameters
-        ----------
-        controller: (object)
-            custom object of a PyMoDAQ plugin (Slave case). None if only one actuator/detector by controller
-            (Master case)
+        :param controller: Custom object of a PyMoDAQ plugin (Slave case). None if only one actuator/detector by controller (Master case)
+        :type controller: object
 
         Returns
         -------
