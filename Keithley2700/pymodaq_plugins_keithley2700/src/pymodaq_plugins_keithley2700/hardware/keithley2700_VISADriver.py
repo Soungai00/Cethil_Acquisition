@@ -43,6 +43,7 @@ class Keithley2700VISADriver:
         self.channels_scanlist = ''
         self.modes_channels_dict = {'VOLT:DC':[],'VOLT:AC':[],'CURR:DC':[],'CURR:AC':[],'RES':[],'FRES':[],'FREQ':[],'TEMP':[]}
         self.sample_count_1 = False
+        self.reading_scan_list = False
 
     def configuration_sequence(self):
         """Configure each channel selected by the user
@@ -142,13 +143,15 @@ class Keithley2700VISADriver:
         self._instr.close()
 
     def data(self):
-        # Initiate scan
-        self._instr.write("INIT")
-        # Trigger scan
         if self.sample_count_1 == False:
+            # Initiate scan
+            self._instr.write("INIT")
+            # Trigger scan
             self._instr.write("*TRG")
-        # Get data from buffer (equivalent to FETCH?)
-        str_answer = self._instr.query("FETCH?")
+            # Get data (equivalent to TRAC:DATA? from buffer)
+            str_answer = self._instr.query("FETCH?")
+        else:
+            str_answer = self._instr.query("READ?")
         # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
         list_split_answer = str_answer.split(",")
 
@@ -185,7 +188,6 @@ class Keithley2700VISADriver:
         list_times_values = str_times.split(",")
         # Create numpy.array containing desired values (float type)
         array_measurements_values = np.array(list_measurements_values,dtype=float)
-        print('self sample count ',self.sample_count_1)
         if self.sample_count_1 != True:
             array_times_values = np.array(list_times_values,dtype=float)
         else:
@@ -254,9 +256,9 @@ class Keithley2700VISADriver:
             self.initcontoff()
             mode = mode[5:]
             if 'SCAN_LIST' in mode:
+                self.reading_scan_list = True
                 self.sample_count_1 = False
                 channels = '(@' + self.channels_scanlist + ')'
-                print('scan list = ',channels)
                 # Set to perform 1 to INF scan(s)
                 self._instr.write("TRIG:COUN 1")
                 # Trigger immediately after previous scan end if IMM
@@ -264,6 +266,8 @@ class Keithley2700VISADriver:
                 # Set to scan <n> channels
                 samp_count = 1 + channels.count(',')
                 self._instr.write("SAMP:COUN "+str(samp_count))
+                # Disable scan if currently enabled
+                self._instr.write("ROUT:SCAN:LSEL NONE")
                 # Set scan list channels
                 self._instr.write("ROUT:SCAN " + channels)
                 # Start scan immediately when enabled and triggered
@@ -273,6 +277,7 @@ class Keithley2700VISADriver:
 
 
             else:
+                self.reading_scan_list = False
                 mode_to_read = mode_dictionary.get(mode)
                 # Select channels in the channels list (config file) matching the requested mode
                 channels = '(@' + str(self.modes_channels_dict.get(mode_to_read))[1:-1] + ')'
@@ -281,13 +286,19 @@ class Keithley2700VISADriver:
                 # Set to scan <n> channels
                 samp_count = 1+channels.count(',')
                 self._instr.write("SAMP:COUN "+str(samp_count))
-                print('sam count ',samp_count)
                 if samp_count == 1:
                     self.sample_count_1 = True
+                    # Trigger definition
+                    self._instr.write("TRIG:SOUR IMM")
+                    # Disable scan if currently enabled
+                    self._instr.write("ROUT:SCAN:LSEL NONE")
+                    self._instr.write("ROUT:CLOS " + channels)
                 else:
                     self.sample_count_1 = False
                     # Trigger definition
                     self._instr.write("TRIG:SOUR BUS")
+                    # Disable scan if currently enabled
+                    self._instr.write("ROUT:SCAN:LSEL NONE")
                     # Set scan list channels
                     self._instr.write("ROUT:SCAN " + channels)
                     # Start scan immediately when enabled and triggered
@@ -320,9 +331,20 @@ if __name__ == "__main__":
         
         k2700.reset()
         k2700.configuration_sequence()
+
+        # Daq_viewer simulation first run
         k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
         print('Manual scan example: >init >*trg >trac:data?')
         k2700.user_command()
+
+        for i in range(2):
+            print(k2700.data())
+        print(k2700.data())
+
+        # Daq_viewer simulation change mode
+        k2700.user_command()
+        k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
+        print('Manual scan example: >init >*trg >trac:data?')
 
         for i in range(2):
             print(k2700.data())

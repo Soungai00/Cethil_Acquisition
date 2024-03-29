@@ -16,7 +16,7 @@ module_name = 7706
 # 103 = {mode = 'volt:dc', range = 0.1, resolution = '6', nplc = 5}
 101 = {mode = 'temp', transducer = 'tc', type = 'K', ref_junction = 'int'}
 102 = {mode = 'temp', transducer = 'tc', type = 'K', ref_junction = 'int', resolution = 6, nplc = 5}
-103 = {mode = 'res', range = 0.1, resolution = 4.5, nplc = 3}
+103 = {}
 104 = {}
 105 = {}
 106 = {}

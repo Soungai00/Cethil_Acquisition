@@ -8,17 +8,6 @@ from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_keithley2700 import config as k2700config
 from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithley2700
-from ...hardware.keithley2700_VISADriver import non_amp_module
-
-# Read configuration file
-
-rsrc_name = k2700config('INSTRUMENT').get('rsrc_name')
-panel = k2700config('INSTRUMENT').get('panel').upper()
-channels = k2700config('CHANNELS').keys()
-
-print(rsrc_name)
-print(panel)
-print('channels : ', channels)
 
 class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     """ Keithley 2700 plugin class for a OD viewer.
@@ -39,6 +28,10 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
     mode: str
     
     """
+    # Read configuration file
+    rsrc_name = k2700config('INSTRUMENT').get('rsrc_name')
+    panel = k2700config('INSTRUMENT').get('panel').upper()
+    channels = k2700config('CHANNELS').keys()
 
     if panel == 'FRONT':
         print('Panel configuration 0D viewer:',panel)
@@ -59,9 +52,8 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         ]
 
     # Remove current measurement from parameters when non-amps modules
-    if non_amp_module == True:
-        print('on est bien')
-        params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'I' in i]
+    if Keithley2700(rsrc_name).non_amp_module == True:
+        params[1]['children'][0]['children'][0]['limits'] = [i for i in params[1]['children'][0]['children'][0]['limits'] if not 'IAC' in i and not 'IDC' in i]
 
     def __init__(self, parent=None, params_state=None):
         super(DAQ_0DViewer_Keithley2700, self).__init__(parent, params_state)
@@ -81,29 +73,13 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
             """Updates the newly selected measurement mode"""
             print('Parameter :',param.value())
             # Read the configuration file to determine which mode to use
-            if panel == 'FRONT':
+            if DAQ_0DViewer_Keithley2700.panel == 'FRONT':
                 value = param.value()
                 self.controller.set_mode(value)
-            elif panel == 'REAR':
+            elif DAQ_0DViewer_Keithley2700.panel == 'REAR':
                 value = 'SCAN_'+param.value()
                 self.channels_in_selected_mode = self.controller.set_mode(value)
                 print('Channels to plot :',self.channels_in_selected_mode)
-
-                ### TEST 08-03
-                child = {'title': 'Cacahuete-Mode', 'name': 'cacahuete_mode', 'type': 'list', 'limits': ['cacahuete'], 'value': 'cacahuete'}
-                child_position = self.settings.child('K2700Params','rearpanel')
-                print("child_position: ",child_position)
-                print("type child_position: ",type(child_position))
-                if 'VAC' in param.value():
-                    print(param.value())
-                    print("settings chil rearpanel: ",self.settings.child('K2700Params','rearpanel'))
-                    # self.settings.child('K2700Params','rearpanel').addChild(testchild,autoIncrementName=True)
-                    self.settings.insertChild(child_position, child, autoIncrementName=True, existOk=False)
-                if 'TEMP' in param.value():
-                    print(param.value())
-                    print("rear panel children: ",self.settings.child('K2700Params','rearpanel').children())
-                    self.settings.child('K2700Params','rearpanel').removeChild(child)
-                ###
 
             print('DAQ_viewer command sent to keithley visa driver :',value)
 
@@ -119,9 +95,8 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         initialized: bool
             False if initialization failed otherwise True
         """
-        print('Detector : 0D')
-        print('Channels :', channels)
-
+        print('Detector 0D initialized')
+        
         self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
         if self.settings.child(('controller_status')).value() == "Slave":
             if controller is None: 
@@ -130,18 +105,18 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
                 self.controller = controller
         else:
             try:
-                self.controller = Keithley2700(rsrc_name)
+                self.controller = Keithley2700(DAQ_0DViewer_Keithley2700.rsrc_name)
             except Exception as e:
                 raise Exception('No controller could be defined because an error occurred\
                  while connecting to the instrument. Error: {}'.format(str(e)))
         
         # Reset Keithley
-        self.controller.reset()
+        self.controller.configuration_sequence()
         # Initilize detector communication and set the default value (VDC)
-        if panel == 'FRONT':
+        if DAQ_0DViewer_Keithley2700.panel == 'FRONT':
             value = self.settings.child('K2700Params', 'frontpanel', 'frontmode').value()
             self.controller.set_mode(value)
-        elif panel == 'REAR':
+        elif DAQ_0DViewer_Keithley2700.panel == 'REAR':
             value = 'SCAN_'+self.settings.child('K2700Params', 'rearpanel', 'rearmode').value()
             self.channels_in_selected_mode = self.controller.set_mode(value)
             print('Channels to plot :',self.channels_in_selected_mode)
@@ -149,7 +124,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
 
         # Initialize viewers with the future type of data
         self.dte_signal.emit(DataToExport(name='keithley2700',
-                                          data=[DataFromPlugins(name=rsrc_name,
+                                          data=[DataFromPlugins(name=DAQ_0DViewer_Keithley2700.rsrc_name,
                                                                 data=[np.array([0])],
                                                                 dim='Data0D',
                                                                 labels=['Meas', 'Time'])]))
@@ -175,31 +150,51 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         kwargs: dict
             others optionals arguments
         """
-        channels_in_selected_mode = self.channels_in_selected_mode
-        print('channels_in_selected_mode = ',channels_in_selected_mode)
+        channels_in_selected_mode = self.channels_in_selected_mode[1:-1].replace('@','')
         # Read data_tot
-        if panel == 'FRONT':
-            data_tot = self.controller.read()[1]
+        if DAQ_0DViewer_Keithley2700.panel == 'FRONT':
+            data_tot = self.controller.data()[1]
             print('Data tot :',data_tot)
-        elif panel == 'REAR':
+        elif DAQ_0DViewer_Keithley2700.panel == 'REAR':
             Chan_to_plot=[]
             for i in range(len(channels_in_selected_mode.split(','))):
                 Chan_to_plot.append('Channel '+str(channels_in_selected_mode.split(',')[i]))
             print(Chan_to_plot)
-            data_tot = self.controller.read()[1]
-            print('Data tot :',data_tot)
-            for i in range(len(Chan_to_plot)):
-                print(Chan_to_plot[i]+': ',data_tot[i])
+            data_tot = self.controller.data()[1]
+            print('Data :',data_tot)
+
+        # When reading the scan_list, data are displayed and exported grouped by mode
+        if self.controller.reading_scan_list == False:
+
+            # Grab data
+            data = DataToExport(name='keithley2700',
+                                            data=[DataFromPlugins(name='Temperatures',
+                                                                    data=[np.array([data_tot[i]]) for i in range(len(data_tot))],
+                                                                    dim='Data0D',
+                                                                    labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))])
+                                                    ])
         
-        # Grab the 1st data of each scan array
-        data = DataToExport(name='keithley2700',
-                                          data=[DataFromPlugins(name=rsrc_name,
-                                                                data=[np.array([data_tot[i]]) for i in range(len(data_tot))],
-                                                                dim='Data0D',
-                                                                labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))])])
+        elif self.controller.reading_scan_list == True:
+            print('modes channel dict : ', self.controller.modes_channels_dict)
+
+            # Grab data
+            data = DataToExport(name='keithley2700',
+                                            data=[DataFromPlugins(name='Temperatures',
+                                                                    data=[np.array([data_tot[0]]), np.array([data_tot[1]])],
+                                                                    dim='Data0D',
+                                                                    labels=[Chan_to_plot[0], Chan_to_plot[1]]),
+                                                    DataFromPlugins(name='Voltage',
+                                                                    data=[np.array([data_tot[3]])],
+                                                                    dim='Data0D',
+                                                                    labels=[Chan_to_plot[3]]),
+                                                    DataFromPlugins(name='Resistance',
+                                                                    data=[np.array([data_tot[2]])],
+                                                                    dim='Data0D',
+                                                                    labels=[Chan_to_plot[2]])
+                                                    ])
+        
         self.dte_signal.emit(data)
         
-
         # Write data in txt file
         if not os.path.exists('Keithley2700_data_det0D.txt'):
             open('Keithley2700_data_det0D.txt','w')
