@@ -9,7 +9,7 @@ import os
 import sys
 # sys.path.insert(0, os.path.abspath('..')) #No need while only documenting Keithley2700
 sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src'))
-#sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src\pymodaq_plugins_keithley2700'))
+sys.path.insert(0, os.path.abspath('..\.conda\PmDev\Lib\site-packages'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -29,9 +29,12 @@ extensions = ["sphinx.ext.todo",
               "sphinx.ext.inheritance_diagram"
               ]
 
-autodoc_default_options = {'members': True,
-                           'special-members': '__init__',
-                           }
+autodoc_default_flags = ['members', 'inherited-members', 'show-inheritance']
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": False,
+    "show-inheritance": False,
+}
 
 inheritance_graph_attrs = dict(rankdir="TB", size='""')
 

@@ -45,22 +45,11 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../enduser/index.html">1. End User documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../developper/index.html">2. Developper documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../downloads/downloads.html">3. Downloads</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">4. Code documentation</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="index.html#pymodaq-plugins-keithley2700">4.1. pymodaq_plugins_keithley2700</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="daq_viewer_plugins.html">4.1.1. daq_viewer_plugins</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">4.1.2. hardware module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver"><code class="docutils literal notranslate"><span class="pre">Keithley2700VISADriver</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="index.html#class-inheritance">4.2. Class Inheritance</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">4. Code documentation</a></li>
 </ul>
 
         </div>
@@ -93,27 +82,11 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.</span></span><span class="sig-name descname"><span class="pre">Keithley2700VISADriver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rsrc_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pyvisa_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&#64;ivi'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pymodaq_plugins_keithley2700/hardware/keithley2700_VISADriver.html#Keithley2700VISADriver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver" title="Permalink to this definition"></a></dt>
-<dd><p>VISA class driver for the Keithley 2700 Multimeter/Switch System</p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>VISA class driver for the Keithley 2700 Multimeter/Switch System</p>
 <p>This class relies on pyvisa module to communicate with the instrument via VISA protocol.
 Please refer to the instrument reference manual available at:
 <a class="reference external" href="https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf">https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf</a></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rsrc_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pyvisa_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&#64;ivi'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pymodaq_plugins_keithley2700/hardware/keithley2700_VISADriver.html#Keithley2700VISADriver.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>Initialize Keithley2700VISADriver class</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>rsrc_name</strong> (<em>string</em>) – VISA Resource name</p></li>
-<li><p><strong>pyvisa_backend</strong> (<em>string</em>) – Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Attribute _instr<span class="colon">:</span></dt>
-<dd class="field-even"><p>Resource name opened by resource manager</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver.configuration_sequence">
 <span class="sig-name descname"><span class="pre">configuration_sequence</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pymodaq_plugins_keithley2700/hardware/keithley2700_VISADriver.html#Keithley2700VISADriver.configuration_sequence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pymodaq_plugins_keithley2700.hardware.keithley2700_VISADriver.Keithley2700VISADriver.configuration_sequence" title="Permalink to this definition"></a></dt>

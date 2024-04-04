@@ -3,4 +3,4 @@ Code documentation
 ==================
 
 .. include:: modules.rst
-.. include:: classdiag.inc
+.. include:: classdiag.rst

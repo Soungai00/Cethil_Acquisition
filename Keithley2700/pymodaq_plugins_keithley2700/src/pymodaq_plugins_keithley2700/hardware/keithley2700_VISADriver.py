@@ -39,11 +39,12 @@ class Keithley2700VISADriver:
         if k2700config('MODULE','module_name') in non_amp_modules_list:
             self.non_amp_module = True
 
-        # Channels used
+        # Channels & modes attributes
         self.channels_scanlist = ''
         self.modes_channels_dict = {'VOLT:DC':[],'VOLT:AC':[],'CURR:DC':[],'CURR:AC':[],'RES':[],'FRES':[],'FREQ':[],'TEMP':[]}
         self.sample_count_1 = False
         self.reading_scan_list = False
+        self.current_mode = ''
 
     def configuration_sequence(self):
         """Configure each channel selected by the user
@@ -123,7 +124,8 @@ class Keithley2700VISADriver:
             except Exception as e:
                 print(e)
                 pass
-
+        
+        self.current_mode = 'scan_list'
         self.channels_scanlist =  channels[:-1]
         print('********** CONFIGURATION SEQUENCE SUCCESSFULLY ENDED **********\n')
 
@@ -241,13 +243,10 @@ class Keithley2700VISADriver:
 
         """
         mode = mode.upper()
-        mode_dictionary = {'VDC':'VOLT:DC','VAC':'VOLT:AC','IDC':'CURR:DC','IAC':'CURR:AC',
-                           'R2W':'RES','R4W':'FRES','FREQ':'FREQ','TEMP':'TEMP'}
         
         # FRONT panel
         if "SCAN" not in mode:
-            mode_to_read = mode_dictionary.get(mode)
-            self._instr.write("FUNC " + mode_to_read)
+            self._instr.write("FUNC " + mode)
 
         # REAR panel
         else:
@@ -255,6 +254,7 @@ class Keithley2700VISADriver:
             # Init contiuous disabled
             self.initcontoff()
             mode = mode[5:]
+            self.current_mode = mode
             if 'SCAN_LIST' in mode:
                 self.reading_scan_list = True
                 self.sample_count_1 = False
@@ -278,9 +278,8 @@ class Keithley2700VISADriver:
 
             else:
                 self.reading_scan_list = False
-                mode_to_read = mode_dictionary.get(mode)
                 # Select channels in the channels list (config file) matching the requested mode
-                channels = '(@' + str(self.modes_channels_dict.get(mode_to_read))[1:-1] + ')'
+                channels = '(@' + str(self.modes_channels_dict.get(mode))[1:-1] + ')'
                 # Set to perform 1 to INF scan(s)
                 self._instr.write("TRIG:COUN 1")
                 # Set to scan <n> channels
