@@ -31,7 +31,7 @@ test:
     - conda install -n PymodaqCI sphinx
     - conda run -n PymodaqCI pip install pymodaq==4.0.11 sphinx-rtd-theme
     - conda install -n PymodaqCI pyvisa
-    - conda run -n PymodaqCI sphinx -apidocs -o docs Keithley2700/ymodaq_plugins_keithley2700/src/pymodaq_plugins_keithley2700
+    - conda run -n PymodaqCI sphinx-apidocs -o docs Keithley2700/ymodaq_plugins_keithley2700/src/pymodaq_plugins_keithley2700
     - conda run -n PymodaqCI -cwd docs make html
   only:
     - master # this job will affect every branch except 'master'
