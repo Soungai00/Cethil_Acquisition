@@ -1,0 +1,48 @@
+# requiring the environment of NodeJS 10
+image: conda/miniconda3:latest
+
+# # add 'node_modules' to cache for speeding up builds
+# cache:
+#   paths:
+#     - node_modules/ # Node modules and dependencies
+
+# before_script:
+#   - npm install gitbook-cli -g # install gitbook
+#   - gitbook fetch 3.2.3 # fetch final stable version
+#   - gitbook install # add any requested plugins in book.json
+#   - npm install -g doctoc
+#   - npm install -g gitbook-summary
+#   - doctoc .
+#   - book sm
+
+# stages:
+#  - test
+#  - deploy
+
+test:
+  stage: test
+  tags: 
+  - python
+  script:
+    - sphinx -apidocs -o docs Keithley2700/ymodaq_plugins_keithley2700/src/pymodaq_plugins_keithley2700
+    - cd docs
+    - make html # build to public path
+  only:
+    - master # this job will affect every branch except 'master'
+  # except:
+  #   - master
+    
+# the 'pages' job will deploy and build your site to the 'public' path
+# pages:
+#   stage: deploy
+#   tags: 
+#   - javascript
+#   script:
+#     - gitbook build # build to public path
+# #    - gitbook build . public # build to public path
+# #  artifacts:
+# #    paths:
+# #      - public#    expire_in: 1 week
+#   only:
+#     - master # this job will affect only the 'master' branch
+
