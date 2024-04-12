@@ -19,7 +19,8 @@ pages:
     - master # this job will affect every branch except 'master'
   artifacts:
     paths:
-      - public
+      - doc
+  publish: doc
 
 
 
