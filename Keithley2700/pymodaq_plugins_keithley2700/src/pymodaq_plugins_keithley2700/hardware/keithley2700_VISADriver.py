@@ -1,6 +1,5 @@
 import numpy as np
 import pyvisa as visa
-import time
 from pymodaq_plugins_keithley2700 import config as k2700config
 
 class Keithley2700VISADriver:
@@ -9,7 +8,6 @@ class Keithley2700VISADriver:
     This class relies on pyvisa module to communicate with the instrument via VISA protocol.
     Please refer to the instrument reference manual available at:
     https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf
-
     """
 
     def __init__(self, rsrc_name, pyvisa_backend='@ivi'):
@@ -20,9 +18,6 @@ class Keithley2700VISADriver:
 
         :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
         :type pyvisa_backend: string
-        
-        :attribute _instr: Resource name opened by resource manager
-        :type _instr: pyvisa.resources.serial.SerialInstrument
         """
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
         self._instr = rm.open_resource(rsrc_name)
@@ -30,8 +25,8 @@ class Keithley2700VISADriver:
 
         # Termination character
         termination_dictionary = {'CR':'\r','LF':'\n','CRLF':'\r\n','LFCR':'\n\r'}
-        self._instr.write_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination'))
-        self._instr.read_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination'))
+        self._instr.write_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
+        self._instr.read_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
 
         # Non-amps modules
         self.non_amp_module = False
@@ -53,7 +48,6 @@ class Keithley2700VISADriver:
         
         :raises TypeError: Channel section of configuration file not correctly defined, each channel should be a dictionary
         :raises ValueError: Channel not correctly defined, it should at least contain a key called "mode"
-
         """
         print('\n********** CONFIGURATION SEQUENCE INITIALIZED **********')
         print('Acquisition card = ', k2700config('MODULE','module_name'))
@@ -65,11 +59,17 @@ class Keithley2700VISADriver:
         # The following loop set up each channel in the config file
         for key in k2700config('CHANNELS').keys():
 
-            # Raise error if the channels config section is not correctly set up by the user
+            # Handling user mistakes if the channels configuration section is not correctly set up
             if not type(k2700config('CHANNELS',key))==dict:
-                raise TypeError("Channel %s not correctly defined, should be a dict" % key)
+                print("Channel %s not correctly defined, must be a dictionary" % key)
+                continue
+            if not k2700config('CHANNELS',key):
+                continue
             if not "mode" in k2700config('CHANNELS',key):
                 print("Channel %s not fully defined, 'mode' is missing" % key)
+                continue
+            if k2700config('CHANNELS',key).get('mode').upper() not in self.modes_channels_dict.keys():
+                print("Channel %s not correctly defined, mode not recognized" % key)
                 continue
 
             # Channel mode
@@ -79,9 +79,6 @@ class Keithley2700VISADriver:
             channels += key + ","
             cmd = "FUNC '" + mode + "'," + channel
             self._instr.write(cmd)
-
-            # Console info
-            print('Channel %s \n %s' % (key,k2700config('CHANNELS',key)))
 
             # Config
             if 'range' in k2700config('CHANNELS',key).keys():
@@ -112,10 +109,14 @@ class Keithley2700VISADriver:
                     frtd_type = k2700config('CHANNELS',key).get('type').upper()
                     self.mode_temp_frtd(channel,transducer,frtd_type)
 
+            # Console info
+            print('Channel %s \n %s' % (key,k2700config('CHANNELS',key)))
+
             # Timeout update for long measurement modes such as voltage AC
             if "AC" in mode:
                 self._instr.timeout += 4000
-            # Handling errors
+
+            # Handling errors from Keithley
             current_error = self.get_error()
             try:
                 if current_error != '0,"No error"':
@@ -142,9 +143,17 @@ class Keithley2700VISADriver:
         self._instr.write("TRAC:CLE:AUTO ON")
 
     def close(self):
+        self._instr.write("ROUT:OPEN:ALL")
         self._instr.close()
 
     def data(self):
+        """Get data from instrument
+
+        Make the Keithley perfom 3 actions: init, trigger, fetch. Then process the answer to return 3 variables:
+        - The answer (string)
+        - The measurement values (numpy array)
+        - The timestamp of each measurement (numpy array)
+        """
         if self.sample_count_1 == False:
             # Initiate scan
             self._instr.write("INIT")
@@ -240,13 +249,15 @@ class Keithley2700VISADriver:
 
         :param mode: Measurement configuration ('SCAN_LIST', 'VDC', 'VAC', 'IDC', 'IAC', 'R2W', 'R4W', 'FREQ' and 'TEMP' modes are supported)
         :type mode: string
-
         """
         mode = mode.upper()
         
         # FRONT panel
         if "SCAN" not in mode:
-            self._instr.write("FUNC " + mode)
+            self.initcontoff()
+            self.sample_count_1 = True
+            self.reading_scan_list = False
+            self._instr.write("FUNC '" + mode + "'")
 
         # REAR panel
         else:

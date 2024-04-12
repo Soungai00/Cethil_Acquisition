@@ -32,6 +32,7 @@ extensions = ["sphinx.ext.todo",
 autodoc_default_flags = ['members', 'inherited-members', 'show-inheritance']
 autodoc_default_options = {
     "members": True,
+    "special-members": "__init__",
     "inherited-members": False,
     "show-inheritance": False,
 }

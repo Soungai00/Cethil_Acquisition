@@ -1,9 +1,9 @@
 title = "Config file for the keithley2700 plugin using a 7706 acquisition card"
 
 [INSTRUMENT]
-rsrc_name = "ASRL1::INSTR"  # resource name
-termination = "LF"  # termination character
-panel = "REAR" # Front/rear panel
+rsrc_name = ""
+termination = ""
+panel = ""
 
 [SAVING_TXT_DATA]
 path = ""
