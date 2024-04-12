@@ -24,13 +24,13 @@ test:
   tags: 
   - python
   script:
+    - apt update
+    - apt install make
     - conda create --name PymodaqCI python=3.8
     - conda update conda
     - conda config --add channels conda-forge
-    - conda install -n PymodaqCI pyqt
-    - conda install -n PymodaqCI sphinx
+    - conda install -n PymodaqCI pyqt sphinx pyvisa
     - conda run -n PymodaqCI pip install pymodaq==4.0.11 sphinx-rtd-theme
-    - conda install -n PymodaqCI pyvisa
     - conda run -n PymodaqCI sphinx-apidoc -o docs Keithley2700/pymodaq_plugins_keithley2700/src/pymodaq_plugins_keithley2700
     - conda run -n PymodaqCI --cwd docs make html
   only:
