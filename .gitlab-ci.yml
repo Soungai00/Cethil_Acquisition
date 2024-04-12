@@ -1,7 +1,7 @@
 image: continuumio/miniconda3
 
 pages:
-  stage: test
+  stage: deploy
   tags: 
   - python
   script:
@@ -14,10 +14,11 @@ pages:
     - conda run -n PymodaqCI pip install pymodaq==4.0.11 sphinx-rtd-theme
     - conda run -n PymodaqCI sphinx-apidoc -o docs Keithley2700/pymodaq_plugins_keithley2700/src/pymodaq_plugins_keithley2700
     - conda run -n PymodaqCI --cwd docs make html
+    - ls
   only:
     - master # this job will affect every branch except 'master'
   artifacts:
     paths:
-      - public
+      - doc
 
 
