@@ -1,5 +1,5 @@
 # requiring the environment of NodeJS 10
-image: conda/miniconda3:latest
+image: continuumio/miniconda3
 
 # # add 'node_modules' to cache for speeding up builds
 # cache:
@@ -24,8 +24,6 @@ test:
   tags: 
   - python
   script:
-    - apt update
-    - apt install make
     - conda create --name PymodaqCI python=3.8
     - conda update conda
     - conda config --add channels conda-forge
