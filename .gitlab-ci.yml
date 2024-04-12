@@ -24,6 +24,7 @@ test:
   tags: 
   - python
   script:
+    - apt install make
     - conda create --name PymodaqCI python=3.8
     - conda update conda
     - conda config --add channels conda-forge
