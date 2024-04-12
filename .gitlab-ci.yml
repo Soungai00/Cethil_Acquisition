@@ -25,6 +25,8 @@ test:
   - python
   script:
     - conda create --name PymodaqCI python=3.8
+    - conda update conda
+    - conda config --add channels conda-forge
     - conda install -n PymodaqCI pyqt
     - conda install -n PymodaqCI sphinx
     - conda run -n PymodaqCI pip install pymodaq==4.0.11 sphinx-rtd-theme
