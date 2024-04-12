@@ -1,25 +1,6 @@
-# requiring the environment of NodeJS 10
 image: continuumio/miniconda3
 
-# # add 'node_modules' to cache for speeding up builds
-# cache:
-#   paths:
-#     - node_modules/ # Node modules and dependencies
-
-# before_script:
-#   - npm install gitbook-cli -g # install gitbook
-#   - gitbook fetch 3.2.3 # fetch final stable version
-#   - gitbook install # add any requested plugins in book.json
-#   - npm install -g doctoc
-#   - npm install -g gitbook-summary
-#   - doctoc .
-#   - book sm
-
-# stages:
-#  - test
-#  - deploy
-
-test:
+pages:
   stage: test
   tags: 
   - python
@@ -35,20 +16,8 @@ test:
     - conda run -n PymodaqCI --cwd docs make html
   only:
     - master # this job will affect every branch except 'master'
-  # except:
-  #   - master
-    
-# the 'pages' job will deploy and build your site to the 'public' path
-# pages:
-#   stage: deploy
-#   tags: 
-#   - javascript
-#   script:
-#     - gitbook build # build to public path
-# #    - gitbook build . public # build to public path
-# #  artifacts:
-# #    paths:
-# #      - public#    expire_in: 1 week
-#   only:
-#     - master # this job will affect only the 'master' branch
+  artifacts:
+    paths:
+      - public
+
 
