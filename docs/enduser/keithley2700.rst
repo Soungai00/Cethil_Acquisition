@@ -18,39 +18,48 @@ Once downloaded, extract the package in the local repository you want, and insta
     $ pip install pyvisa
 
 .. note::
-    The plugin requires the python package pyvisa.
+    The plugin requires the python package pyvisa to cummunicate with the instrument.
 
 ******************
 Instrument control
 ******************
 
-- Hardware
-    - Connect the Keithley power supply cable
-    - Connect the Keithley to the PC (RS232 connexion is the only one supported at this point, later will be implemented GPIB/TCIP)
-    - Power on the Keithley
+Hardware
+********
 
-- Software
-    - Launch Pymodaq dashboard running (in your dedicated environmnent) the command::
+- Connect the Keithley power supply cable
+- Connect the Keithley to the PC (RS232 connexion is the only one supported at this point, later will be implemented GPIB/TCIP)
+- Power on the Keithley
 
-        $ dashboard
+Software
+********
 
-    This window should open (if not, please check carefully the previous installation procedure, you may have installed the wrong version or miss a necessary package):
+- Launch Pymodaq dashboard running (in your dedicated environmnent) the command::
+
+    $ dashboard
+
+This window should open (if not, please check carefully the previous installation procedure, you may have installed the wrong version or miss a necessary package):
 
     .. image:: ../images/pymodaq_dashboard.PNG
         :width: 1000
 
-    - Load existing preset, if not, you can create a new one as shown below:
+- Load existing preset, if not, you can create a new one as shown below:
 
-    .. image:: ../images/pymodaq_newpreset.PNG
-        :width: 1000
+|image 1|   |image 2|
 
-	    - No actuator
-	    - 1 Detector (0D for sample visualization, 1D for temporal plots but not fully implemented)
+.. |image 1| image:: ../images/pymodaq_newpreset.PNG
+    :align: top
+    :width: 49 %
+.. |image 2| image:: ../images/pymodaq_newpreset_det00_keithley.PNG
+    :align: top
+    :width: 49 %
 
-        .. image:: ../images/pymodaq_newpreset_det00_keithley.PNG
-            :width: 1000
+.. warning::
+    | Problem still unsolved:
+    | Init?: must not be ticked, otherwise the daq_viewer can't be launched from the dashboard
 
-    - The daq_viewer window open automaticaly when loading preset. Instead of using the dashboard, you can run it directly through your prompt running::
+- The daq_viewer window open automaticaly when loading preset. Instead of using the dashboard, you can run it directly through your prompt running::
 
-        $ daq_viewer
+    $ daq_viewer
 
+The generated window is the main daq_viewer window which relate the code to the user interface, allowing the acquisition process.

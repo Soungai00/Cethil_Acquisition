@@ -31,11 +31,14 @@ Then, run the following sequence::
 
     Python 3.8 and Pymodaq 4.0.11 are the ones used during the tests.
 
-.. note::
+.. warning::
     Pymodaq requires the python package pyqt, don't forget it !
 
-One Pymodaq installed, you will now need to install plugins according to the instrument you use.
-The plugin manager list all the plugins available on https://github.com/PyMoDAQ/pymodaq_plugin_manager.
+Once Pymodaq installed, you will now need to install plugins according to the instrument you use.
+You can find the list of all available plugins running the plugin manager::
+    $ plugin_manager
+
+Or check it on https://github.com/PyMoDAQ/pymodaq_plugin_manager.
 If you want to use a custom plugin, you need to pip install it in your working environment::
 
     $ cd <PATH_TO_YOUR_ENV>\Pymodaq_ENV_NAME
