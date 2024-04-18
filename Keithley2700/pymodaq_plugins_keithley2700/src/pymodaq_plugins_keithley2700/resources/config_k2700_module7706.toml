@@ -5,9 +5,6 @@ rsrc_name = ""
 termination = ""
 panel = ""
 
-[SAVING_TXT_DATA]
-path = ""
-
 [MODULE]
 module_name = 7706
 

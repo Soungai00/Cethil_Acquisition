@@ -50,7 +50,7 @@ This window should open (if not, please check carefully the previous installatio
 .. |image 1| image:: ../images/pymodaq_newpreset.PNG
     :align: top
     :width: 49 %
-.. |image 2| image:: ../images/pymodaq_newpreset_det00_keithley.PNG
+.. |image 2| image:: ../images/pymodaq_newpreset_keithley.PNG
     :align: top
     :width: 49 %
 

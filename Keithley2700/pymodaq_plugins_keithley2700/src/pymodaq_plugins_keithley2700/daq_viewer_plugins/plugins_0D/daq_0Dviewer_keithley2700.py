@@ -1,4 +1,3 @@
-import os
 import datetime
 import numpy as np
 from easydict import EasyDict as edict
@@ -92,10 +91,6 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
         :rtype: bool
         """
         print('Detector 0D initialized')
-        
-        # Set path for txt data saving
-        self.dir_path = k2700config('SAVING_TXT_DATA').get('path')
-        self.file_path = self.dir_path + 'Keithley2700_data_det0D_' + str(datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')) + '.txt'
 
         self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
         if self.settings.child(('controller_status')).value() == "Slave":
@@ -208,16 +203,7 @@ class DAQ_0DViewer_Keithley2700(DAQ_Viewer_base):
                                                        labels=['Channel ' + str(chan) for chan in self.controller.modes_channels_dict.get(key)]
                                                        ) for key in self.controller.modes_channels_dict.keys() if self.controller.modes_channels_dict.get(key) != []])
         
-        
         self.dte_signal.emit(data)
-
-        # Write data in txt file
-        if not os.path.exists(self.dir_path):
-            os.makedirs(self.dir_path)
-        with open(self.file_path,'a+') as f:
-            for i in range(len(data_measurement)):
-                f.write(str(data_measurement[i])+' ')
-            f.write('\n')
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""

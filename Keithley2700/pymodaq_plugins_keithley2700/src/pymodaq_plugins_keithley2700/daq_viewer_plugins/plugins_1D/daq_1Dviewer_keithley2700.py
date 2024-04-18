@@ -1,4 +1,3 @@
-import os
 import time
 import datetime
 import numpy as np
@@ -107,10 +106,6 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
         :rtype: bool
         """
         print('Detector 1D initialized')
-        
-        # Set path for txt data saving
-        self.dir_path = k2700config('SAVING_TXT_DATA').get('path')
-        self.file_path = self.dir_path + 'Keithley2700_data_det1D_' + str(datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')) + '.txt'
 
         self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
         if self.settings.child(('controller_status')).value() == "Slave":
@@ -286,14 +281,6 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
                                                        ])
         
         self.dte_signal.emit(dwa)
-
-        # Write data in txt file
-        if not os.path.exists(self.dir_path):
-            os.makedirs(self.dir_path)
-        with open(self.file_path,'a+') as f:
-            for i in range(len(data_measurement)):
-                f.write(str(data_time_univ[i])+'\t'+str(data_measurement[i])+'\t')
-            f.write('\n')
 
     def stop(self):
         """Stop the current grab hardware wise if necessary"""
