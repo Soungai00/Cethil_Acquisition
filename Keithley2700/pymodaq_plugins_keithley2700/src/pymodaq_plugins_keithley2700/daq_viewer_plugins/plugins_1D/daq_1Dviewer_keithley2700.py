@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand
+from pyqtgraph.dockarea import Dock, DockArea
 from pymodaq.utils.data import Axis, DataFromPlugins, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter import Parameter, ParameterTree
@@ -86,16 +87,90 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
             elif DAQ_1DViewer_Keithley2700.panel == 'REAR':
                 value = 'SCAN_'+param.value()
                 self.channels_in_selected_mode = self.controller.set_mode(value)
-                # if 'TEMP' in param.value():
-                #     a = self.settings.saveState()
-                #     self.added_dict = {'title': 'TITLE', 'name': 'NAME', 'type': 'list', 'visible':True, 'removable':True, 'syncExpanded':True, 'limits': ['plop']}
-                #     self.settings.child('K2700Params', 'rearpanel').addChild(self.added_dict, autoIncrementName=None)
-                #     print('child successfully added')
-                # if 'VOLT:DC' in param.value():
-                #     print('self.names :', self.settings.child('K2700Params', 'rearpanel').names)
-                #     print('child name : ',self.settings.child('K2700Params', 'rearpanel').child('NAME'))
-                #     self.settings.removeChild(self.settings.child('K2700Params', 'rearpanel').child('NAME'))
+                if 'TEMP' in param.value():
+                    self.Treestate = self.settings.saveState()
+                    self.added_dict = {'title': 'TITLE', 'name': 'NAME', 'type': 'list', 'visible':True, 'removable':True, 'syncExpanded':True, 'limits': ['plop','plip']}
+                    self.settings.child('K2700Params', 'rearpanel').addChild(self.added_dict, autoIncrementName=None)
+                    print('\n ********** Adding child')
+                    print('child name : ',self.settings.child('K2700Params', 'rearpanel').child('NAME'))
+                    print('self.names :', self.settings.child('K2700Params', 'rearpanel').names)
+                    print('self.params : ', self.params)
+                    print('self.params type : ',type(self.params))
+                    print('self.settings : ', self.settings)
+                    print('self.settings type : ',type(self.settings))
+                    print('self.settings childs : ',self.settings.childs)
+                    print('self.settings.child(K2700params, rearpanel).childs : ',self.settings.child("K2700Params", "rearpanel").childs)
 
+                if 'VOLT:DC' in param.value():
+                    print('\n********** Removing child')
+                    print('child name : ',self.settings.child('K2700Params', 'rearpanel').child('NAME'))
+                    # self.settings.child('K2700Params', 'rearpanel').removeChild(self.settings.child('K2700Params', 'rearpanel').child('NAME'))
+
+                    """Remove a child parameter."""
+                    child = self.settings.child('K2700Params', 'rearpanel').child('NAME')
+                    name = child.name()
+                    if name not in self.settings.child('K2700Params', 'rearpanel').names or self.settings.child('K2700Params', 'rearpanel').names[name] is not child:
+                        raise Exception("Parameter %s is not my child; can't remove." % str(child))
+                    del self.settings.child('K2700Params', 'rearpanel').names[name]
+                    self.settings.child('K2700Params', 'rearpanel').childs.pop(self.settings.child('K2700Params', 'rearpanel').childs.index(child))
+                    child.parentChanged(None)
+                    try:
+                        child.sigTreeStateChanged.disconnect(self.settings.child('K2700Params', 'rearpanel').treeStateChanged)
+                    except (TypeError, RuntimeError):  ## already disconnected
+                        pass
+                    self.settings.child('K2700Params', 'rearpanel').sigChildRemoved.emit(self.settings.child('K2700Params', 'rearpanel'), child)
+
+                    changes = (self.settings.child('K2700Params', 'rearpanel'),"parent","information")
+                    self.settings.sigTreeStateChanged.connect(self.send_param_status(self.settings.child('K2700Params', 'rearpanel'),changes))
+
+                    # self.init_tree = ParameterTree()
+                    # self.init_tree.setParameters(self.settings, showTop=False)
+                    
+                    # # Parameters change test
+                    # self.settings.QtCore.Signal("childRemoved")
+                    # self.settings.child('K2700Params', 'rearpanel').QtCore.Signal("childRemoved")
+                    # self.settings.QtCore.Signal(self.settings.child('K2700Params', 'rearpanel').child('NAME'))
+
+                    # sigChildRemoved
+                    self.settings.sigChildRemoved
+                    print('1 - Passed')
+                    self.settings.sigChildRemoved.connect(self.settings._emitChildRemovedChanged)
+                    print('2 - Passed')
+                    self.settings.child('K2700Params', 'rearpanel').sigChildRemoved
+                    print('3 - Passed')
+                    self.settings.child('K2700Params', 'rearpanel').sigChildRemoved.connect(self.settings.child('K2700Params', 'rearpanel')._emitChildRemovedChanged)
+                    print('4 - Passed')
+
+                    # # sigRemoved
+                    # self.settings.sigRemoved
+                    # self.settings.sigRemoved.connect(self.settings._emitRemovedChanged)
+                    # self.settings.child('K2700Params', 'rearpanel').sigRemoved()
+                    # self.settings.child('K2700Params', 'rearpanel').sigRemoved.connect(self.settings._emitChildRemovedChanged)
+
+                    # # sigTreeStateChanged
+                    # self.settings.sigTreeStateChanged()
+                    # self.settings.sigTreeStateChanged.connect(self.send_param_status)
+                    # self.settings.child('K2700Params', 'rearpanel').sigTreeStateChanged(self.settings.child('K2700Params', 'rearpanel'))
+                    # self.settings.child('K2700Params', 'rearpanel').sigTreeStateChanged.connect(self.settings.child('K2700Params', 'rearpanel').send_param_status)
+
+                    print('self.names :', self.settings.child('K2700Params', 'rearpanel').names)
+                    print('self.params : ', self.params)
+                    print('self.params type : ',type(self.params))
+                    print('self.settings : ', self.settings)
+                    print('self.settings type : ',type(self.settings))
+                    print('self.settings.child(K2700params, rearpanel).childs : ',self.settings.child("K2700Params", "rearpanel").childs)
+
+                    self.settings.restoreState(self.Treestate)
+
+                    # self.settings.clearChildren()
+
+                    # with self.settings.treeChangeBlocker():
+                    #     if child.parent() is not None:
+                    #         child.remove()
+                            
+                    #     self.settings.sigTreeStateChanged.connect(self.settings.treeStateChanged)
+                    #     self.settings.sigChildAdded.emit(self.settings, child, pos)
+                    
     def ini_detector(self, controller=None):
         """Detector communication initialization
 
@@ -236,49 +311,25 @@ class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
                         print(' dict chan value.get(chan)', dict_chan_value.get(str(chan)))
             print('***************** DEBUG OUT ********************\n')
 
-            # Grab data (by scanning configured channels)
-            # dwa = DataToExport(name='keithley2700',
-            #                     data=[DataFromPlugins(name=dict_label_mode[key],
-            #                                            data=[np.array([dict_chan_value[str(chan)][0]]) for chan in self.controller.modes_channels_dict.get(key)],
-            #                                            axes=[Axis(label='Time', units='s',data=np.array([dict_chan_value[str(chan)][1]]),index=0)  for chan in self.controller.modes_channels_dict.get(key)],
-            #                                            dim='Data1D',
-            #                                            labels=['Channel ' + str(chan) for chan in self.controller.modes_channels_dict.get(key)]
-            #                                            ) for key in self.controller.modes_channels_dict.keys() if self.controller.modes_channels_dict.get(key) != []])
-            
-            
-            test = np.array([dict_chan_value[str(chan)][1] for chan in self.controller.modes_channels_dict.get('VOLT:DC')])
-            print('test :', test)
-            print('type test :', type(test))
+            data = [DataFromPlugins(name=dict_label_mode[key],
+                                    data=[np.array([dict_chan_value[str(chan)][0]]) for chan in self.controller.modes_channels_dict.get(key)],
+                                    axes=[Axis(label='Time',
+                                               units='s',
+                                               data=np.array([dict_chan_value[str(chan)][1]]),
+                                               index=0)  for chan in self.controller.modes_channels_dict.get(key)],
+                                    dim='Data1D',
+                                    labels=['Channel ' + str(chan) for chan in self.controller.modes_channels_dict.get(key)]
+                                    ) for key in self.controller.modes_channels_dict.keys() if self.controller.modes_channels_dict.get(key) \
+                                        != []]
+            data.append(DataFromPlugins(name='TEST',
+                                        data=[np.random.randn(10,10)],
+                                        axes=[Axis(label='Time', units='s',data=np.arange(10),index=0),
+                                              Axis(label='Time', units='s',data=np.arange(10),index=0)],
+                                        dim='Data1D',
+                                        labels=['Arange test']))
 
-            print('dict value temp 101: ', dict_chan_value[str(101)][1])
-            dwa = DataToExport(name='keithley2700',
-                                data=[DataFromPlugins(name=dict_label_mode['TEMP'],
-                                                       data=[np.array([dict_chan_value[str(chan)][0]]) for chan in self.controller.modes_channels_dict.get('TEMP')],
-                                                       axes=[Axis(label='Time', units='s',data=np.array([dict_chan_value[str(chan)][1]]),index=0)  for chan in self.controller.modes_channels_dict.get('TEMP')],
-                                                       dim='Data1D',
-                                                       labels=['Channel ' + str(chan) for chan in self.controller.modes_channels_dict.get('TEMP')]
-                                                       ),
-                                    DataFromPlugins(name=dict_label_mode['VOLT:DC'],
-                                                       data=[np.array([dict_chan_value[str(chan)][0]]) for chan in self.controller.modes_channels_dict.get('VOLT:DC')],
-                                                       axes=[Axis(label='Time', units='s',data=test,index=0),
-                                                             Axis(label='Time', units='s',data=test,index=0)],
-                                                       dim='Data1D',
-                                                       labels=['Channel ' + str(chan) for chan in self.controller.modes_channels_dict.get('VOLT:DC')]
-                                                       ),
-                                    DataFromPlugins(name=dict_label_mode['RES'],
-                                                       data=[np.array([dict_chan_value[str(103)][0]])],
-                                                       axes=[Axis(label='Time', units='s',data=np.array([dict_chan_value[str(103)][1]]),index=0)],
-                                                       dim='Data1D',
-                                                       labels=['Channel ' + str(103)]
-                                                       ),
-                                    DataFromPlugins(name='TEST',
-                                                       data=[np.random.randn(10,10)],
-                                                       axes=[Axis(label='Time', units='s',data=np.arange(10),index=0),
-                                                             Axis(label='Time', units='s',data=np.arange(10),index=0)],
-                                                       dim='Data1D',
-                                                       labels=['Arange test']
-                                                       )                   
-                                                       ])
+            # Grab data (by scanning configured channels)
+            dwa = DataToExport(name='keithley2700',data=data)
         
         self.dte_signal.emit(dwa)
 
