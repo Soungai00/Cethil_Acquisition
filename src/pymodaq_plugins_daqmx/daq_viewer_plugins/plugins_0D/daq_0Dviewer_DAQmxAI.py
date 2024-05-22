@@ -16,14 +16,34 @@ class DAQ_0DViewer_DAQmxAI(DAQ_Viewer_base):
     """Specific DAQmx plugin for getting analog input data as 0D or 1D data
 
     """
+    # Native section
+    # params = comon_parameters+[
+    #     {'title': 'Display type:', 'name': 'display', 'type': 'list', 'limits': ['0D', '1D']},
+    #     {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 1000, 'min': 1},
+    #     {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 100, 'default': 100, 'min': 1},
+    #     {'title': 'AI:', 'name': 'ai_channel', 'type': 'list',
+    #      'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'),
+    #      'value': DAQmx.get_NIDAQ_channels(source_type='Analog_Input')[0]},
+    #     ]
+
     params = comon_parameters+[
-        {'title': 'Display type:', 'name': 'display', 'type': 'list', 'limits': ['0D', '1D']},
-        {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 1000, 'min': 1},
-        {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 100, 'default': 100, 'min': 1},
-        {'title': 'AI:', 'name': 'ai_channel', 'type': 'list',
+        {'title': 'Display type :', 'name': 'display', 'type': 'list', 'limits': ['0D', '1D']},
+        {'title': 'Module ref. :', 'name' : 'module' , 'type': 'list', 'limits': DAQmx.get_NIDAQ_devices() , 'value': DAQmx.get_NIDAQ_devices()[0]},       
+        {'title': 'Analog channel :', 'name': 'ai_channel', 'type': 'list',
          'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'),
          'value': DAQmx.get_NIDAQ_channels(source_type='Analog_Input')[0]},
+        {'title': 'Analog Source :', 'name': 'ai_srce', 'type': 'list',
+         'limits': DAQ_NIDAQ_source.names(),
+         'value':  DAQ_NIDAQ_source.names()[0]},
+        {'title': 'Analog Type :', 'name': 'ai_type', 'type': 'list',
+         'limits': DAQ_analog_types.names(),
+         'value':  DAQ_analog_types.names()[0]},
+        {'title': 'Min. value:', 'name': 'ai_min', 'type': 'float', 'value': -80e-3, 'min': -1e4},
+        {'title': 'Max. value:', 'name': 'ai_max', 'type': 'float', 'value': 80e-3, 'max': 1e4},
+        {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 4, 'min': 1},
+        {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 2, 'default': 100, 'min': 1},
         ]
+    
     hardware_averaging = True
     live_mode_available = True
 
@@ -67,11 +87,41 @@ class DAQ_0DViewer_DAQmxAI(DAQ_Viewer_base):
         return info, initialized
 
     def update_tasks(self):
+        # Native section
+        # self.channels_ai = [AIChannel(name=self.settings.child('ai_channel').value(),
+        #                               source='Analog_Input', analog_type='Voltage',
+        #                               value_min=-10., value_max=10., termination='Diff', ),
+        #                     ]
+        
+        #self.channels_ai = [AIChannel(name=self.settings.child('ai_channel').value(),
+        #                              source='Analog_Input', analog_type='Voltage',
+        #                              value_min=-10., value_max=10., termination='Diff', ),
+        #                    ]
 
-        self.channels_ai = [AIChannel(name=self.settings.child('ai_channel').value(),
-                                      source='Analog_Input', analog_type='Voltage',
-                                      value_min=-10., value_max=10., termination='Diff', ),
+        # self.channels_ai = [AIChannel(name=self.settings.child('ai_channel').value(),
+        #                               source='Analog_Input', analog_type='Voltage',
+        #                               value_min=-80.0e-3, value_max=80.0e-3, termination='Diff', ),
+        #                     ]
+
+        # self.channels_ai = [AIThermoChannel(name=self.settings.child('ai_channel').value(),
+        #                               source='Analog_Input', analog_type='Thermocouple',
+        #                               value_min=0., value_max=1000., thermo_type='K', ),
+        #                     ]
+
+        self.channels_ai = [AIThermoChannel(name=self.settings.child('ai_channel').value(),
+                                      source=self.settings.child('ai_srce').value(), analog_type=self.settings.child('ai_type').value(),
+                                      value_min=self.settings.child('ai_min').value() , value_max=self.settings.child('ai_max').value(), thermo_type='K', ),
                             ]
+
+        
+        print("DaqmxAI update_tasks")
+        print("Module Ref. :{}".format(self.settings.child('module').value()))
+        print("channel name :{}".format(self.settings.child('ai_channel').value()))
+        print("Analog_type :{}".format(self.settings.child('ai_type').value()))
+        print("Analog_source :{}".format(self.settings.child('ai_srce').value()))
+        print("Min. value :{}".format(self.settings.child('ai_min').value()))
+        print("Max. value :{}".format(self.settings.child('ai_max').value()))
+        print("frequency :{}".format(self.settings.child('frequency').value()))
 
         self.clock_settings_ai = ClockSettings(frequency=self.settings.child('frequency').value(),
                                                Nsamples=self.settings.child('Nsamples').value(), repetition=self.live)

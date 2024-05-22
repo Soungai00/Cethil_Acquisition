@@ -360,6 +360,48 @@ class DAQmx:
         return channels_tot
 
     @classmethod
+    def getDevProductNum(cls, device):
+        data = PyDAQmx.c_uint32()
+        PyDAQmx.DAQmxGetDevProductNum(device, PyDAQmx.byref(data))
+        return data.value
+
+    @classmethod
+    def getDevProductCategory(cls, device):
+        data = PyDAQmx.c_int32()
+        PyDAQmx.DAQmxGetDevProductCategory(device, PyDAQmx.byref(data))
+        return data.value
+        
+    @classmethod
+    def get_NIDAQ_dev_product_type(cls, device):
+        
+        #print("get_NIDAQ_dev_product_type = device : {}" .format(device))
+        try:
+            #print("in try")
+            string = try_string_buffer(PyDAQmx.DAQmxGetDevProductType, device)
+            #print(string)
+            devProdType = string.split(', ')
+            if devProdType == ['']:
+                devProdType = []
+            return devProdType
+        except:
+            return []
+
+    @classmethod
+    def get_NIDAQ_dev_chassis_module_names(cls, device):
+        
+        #print("get_NIDAQ_dev_chassis_Module_names = device : {}" .format(device))
+        try:
+            #print("in try")
+            string = try_string_buffer(PyDAQmx.DAQmxGetDevChassisModuleDevNames, device)
+            #print(string)
+            devChassisModuleName = string.split(', ')
+            if devChassisModuleName == ['']:
+                devChassisModuleName = []
+            return devChassisModuleName
+        except:
+            return []
+    
+    @classmethod
     def getAOMaxRate(cls, device):
         data = PyDAQmx.c_double()
         PyDAQmx.DAQmxGetDevAOMaxRate(device, PyDAQmx.byref(data))
@@ -417,6 +459,13 @@ class DAQmx:
             for channel in channels:
                 if channel.source == 'Analog_Input': #analog input
                     if channel.analog_type == "Voltage":
+                        print("daqmx update_task CreateAIVoltageChan infos")
+                        print("channel name :{}".format(channel.name))
+                        print("channel termination :{}".format(channel.termination))
+                        print("DAQ_termination :{}".format(DAQ_termination[channel.termination].value))
+                        print("channel value min :{}".format(channel.value_min))
+                        print("channel value max :{}".format(channel.value_max))
+
                         err_code = self._task.CreateAIVoltageChan(channel.name, "analog voltage task",
                                      DAQ_termination[channel.termination].value,
                                      channel.value_min,
@@ -432,12 +481,30 @@ class DAQmx:
                                                                   0., None)
 
                     elif channel.analog_type == "Thermocouple":
+                        print("daqmx update_task CreateAIThrmcplChan infos")
+                        print("channel name :{}".format(channel.name))
+                        print("channel value min :{}".format(channel.value_min))
+                        print("channel value max :{}".format(channel.value_max))  
+                        print("channel thermo_type :{}".format(channel.thermo_type))
+                        #print("DAQ_termination thermo type ")
+                        #print(DAQ_termination[channel.thermo_type].value)
+                        print("CJ source : ")
+                        print(PyDAQmx.DAQmx_Val_BuiltIn)
+
+                        # Native section
+                        # err_code = self._task.CreateAIThrmcplChan(channel.name, "",
+                        #                                           channel.value_min,
+                        #                                           channel.value_max,
+                        #                                           PyDAQmx.DAQmx_Val_DegC,
+                        #                                           DAQ_termination[channel.thermo_type].value,
+                        #                                           PyDAQmx.DAQmx_Val_BuiltIn, 0., "")
+
                         err_code = self._task.CreateAIThrmcplChan(channel.name, "",
                                                                   channel.value_min,
                                                                   channel.value_max,
                                                                   PyDAQmx.DAQmx_Val_DegC,
-                                                                  DAQ_termination[channel.thermo_type].value,
-                                                                  PyDAQmx.DAQmx_Val_BuiltIn, 0., "")
+                                                                  DAQ_thermocouples[channel.thermo_type].value,
+                                                                  PyDAQmx.DAQmx_Val_BuiltIn, 0., "") 
 
                 elif channel.source == 'Counter': #counter
                     if channel.counter_type == "Edge Counter":
@@ -778,4 +845,61 @@ class DAQmx:
 
 if __name__ == '__main__':
     print(DAQmx.get_NIDAQ_channels())
+
+    # to run this section :
+    # open Anaconda Prompt (MiniConda3) and run following commands :
+    # >> conda activate pymdq_cdaq_test (or your _environement)
+    # >> python C:\Users\abuthod\.conda\envs\pymdq_cdaq_test\Lib\site-packages\pymodaq_plugins_daqmx\hardware\national_instruments\daqmx.py
+    print(DAQmx.get_NIDAQ_devices())
+
+
+    print("====================================")
+    print("===== DBG added by A.Buthod ========")
+
+    print("test of access to class enum")
+    print("Analog type = {}" .format(DAQ_analog_types.names()))
+    print("Analog source ={}" .format(DAQ_NIDAQ_source.names()))
+    print("Thermocouple types={}" .format(DAQ_thermocouples.names()))
+    
+    lDevices = DAQmx.get_NIDAQ_devices()
+    print("# of Devices = {}" . format(len(lDevices)))
+    idx = 0
+    for dev in lDevices :
+        print("N°{} = {}" .format(idx,dev))
+        idx = idx + 1
+    
+    print("========================")
+    print("Test Dmx instance")
+    print("========================")
+    tDmx = DAQmx()
+    ltDmxDev = DAQmx.get_NIDAQ_devices()
+    print("List of devices ={}" . format(ltDmxDev))
+    print("# of Devices = {}" . format(len(ltDmxDev)))
+    idx = 0
+    # attention à la gestion de lTemp si plusieurs devices lu cf get_NIDAQ_channels
+    for dev in ltDmxDev :
+        #print("type of dev = {}" .format(type(dev)) )
+        lTemp = []   
+        print(" === Infos about detected device #{} aka {}  " .format(idx,dev))
+        print("N°{} = {}" .format(idx,dev))
+        print("List of channels : {}" .format(DAQmx.get_NIDAQ_channels(lTemp.append(dev),None)))
+        print("_device attribut = {}" .format(tDmx._device))
+        print("device product type = {}" .format(tDmx.get_NIDAQ_dev_product_type(dev)))   
+        print("getDevProductNum = {}" .format(tDmx.getDevProductNum(dev)))
+        print("getDevProductCategory = {}" .format(tDmx.getDevProductCategory(dev)))   
+        print("getDevChassisModulenames = {}" .format(tDmx.get_NIDAQ_dev_chassis_module_names(dev)))
+        idx = idx + 1
+    
+
+
+
+    # print("Device[0] = {}" .format(ltDmxDev[0]))
+    # print("_device = {}" .format(tDmx._device))
+    # print("getAOmaxRate = {}" .format(tDmx.getAOMaxRate('cDAQ1')))
+    # print("getDevProductNum = {}" .format(tDmx.getDevProductNum('cDAQ1')))
+    # print("getDevProductCategory = {}" .format(tDmx.getDevProductCategory('cDAQ1')))
+    # print("getDevChassisModulenames = {}" .format(tDmx.get_NIDAQ_dev_chassis_module_names('cDAQ1')))
+
+    # print("device product type = {}" .format(tDmx.get_NIDAQ_dev_product_type('cDAQ1')))
+    # print("device product type = {}" .format(tDmx.get_NIDAQ_dev_product_type('cDAQ1Mod1'))) 
     pass
