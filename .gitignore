@@ -3,6 +3,7 @@
 doc/
 Data/
 */.vscode
+.idea/
 
 # Compiled python modules.
 *.pyc
