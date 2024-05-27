@@ -7,9 +7,8 @@
 
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('..')) #No need while only documenting Keithley2700
 sys.path.insert(0, os.path.abspath('..\Keithley2700\pymodaq_plugins_keithley2700\src'))
-sys.path.insert(0, os.path.abspath('..\.conda\PmDev\Lib\site-packages'))
+# print("********** PATH OUT *********** \n",str(sys.path).replace(',','\n'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

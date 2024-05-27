@@ -1,14 +1,6 @@
 Class Inheritance
 =================
 
-pymodaq_plugins_keithley2700 module
------------------------------------
-
-.. inheritance-diagram:: pymodaq.extensions.daq_logger pymodaq_plugins_keithley2700.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Keithley2700 pymodaq.dashboard pymodaq.daq_utils pymodaq.control_modules.daq_move pymodaq.control_modules.daq_move_ui pymodaq.control_modules.daq_viewer pymodaq.control_modules.daq_viewer_ui pymodaq.control_modules.mocks pymodaq.control_modules.move_utility_classes pymodaq.control_modules.utils pymodaq.control_modules.viewer_utility_classes pymodaq.utils.data
+.. inheritance-diagram:: pymodaq.extensions.daq_logger.DAQ_Logger pymodaq_plugins_keithley2700.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Keithley2700.DAQ_0DViewer_Keithley2700 pymodaq.dashboard pymodaq.control_modules.daq_move pymodaq.control_modules.daq_viewer pymodaq.control_modules.move_utility_classes.DAQ_Move_TCP_server pymodaq.control_modules.viewer_utility_classes.DAQ_Viewer_TCP_server pymodaq.utils.data.DataFromPlugins pymodaq.utils.data.DataFromRoi pymodaq.utils.data.DataActuator
    :parts: 1
-
-Pymodaq module
---------------
-   
-.. inheritance-diagram:: pymodaq
-   :parts: 1
+   :top-classes: PyQt5.QtCore.QObject
