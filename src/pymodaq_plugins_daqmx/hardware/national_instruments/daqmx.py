@@ -304,6 +304,9 @@ class DAQmx:
         try:
             string = try_string_buffer(PyDAQmx.DAQmxGetSysDevNames)
             devices = string.split(', ')
+            print(devices)
+            devices = devices[:-1]
+            print(devices)
             if devices == ['']:
                 devices = []
             return devices
@@ -844,7 +847,7 @@ class DAQmx:
 
 
 if __name__ == '__main__':
-    print(DAQmx.get_NIDAQ_channels())
+    print(DAQmx.get_NIDAQ_channels(devices=['cDAQ1', 'cDAQ1Mod1']))
 
     # to run this section :
     # open Anaconda Prompt (MiniConda3) and run following commands :
