@@ -19,6 +19,7 @@ class Keithley2700VISADriver:
         :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
         :type pyvisa_backend: string
         """
+        print("Init hardware")
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
         self._instr = rm.open_resource(rsrc_name)
         self._instr.timeout = 10000
@@ -335,7 +336,12 @@ if __name__ == "__main__":
     try:
         print("In main")
 
+        rm = visa.ResourceManager()
+        rm.list_resources()
+
+        # Create an instance of the Keithley2700VISADriver class
         k2700 = Keithley2700VISADriver("ASRL1::INSTR")
+
         print("IDN?")
         print(k2700.get_idn())
         
