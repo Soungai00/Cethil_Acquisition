@@ -1,9 +1,10 @@
 import numpy as np
 import pyvisa as visa
-from pymodaq_plugins_keithley2700 import config as k2700config
+from pymodaq_plugins_keithley import config_k2700 as K_config
+from pymodaq_plugins_keithley import config_k2701
 
-class Keithley2700VISADriver:
-    """VISA class driver for the Keithley 2700 Multimeter/Switch System
+class KeithleyVISADriver:
+    """VISA class driver for the Keithley 27XX Multimeter/Switch System
 
     This class relies on pyvisa module to communicate with the instrument via VISA protocol.
     Please refer to the instrument reference manual available at:
@@ -11,7 +12,7 @@ class Keithley2700VISADriver:
     """
 
     def __init__(self, rsrc_name, pyvisa_backend='@ivi'):
-        """Initialize Keithley2700VISADriver class
+        """Initialize KeithleyVISADriver class
 
         :param rsrc_name: VISA Resource name
         :type rsrc_name: string
@@ -21,18 +22,19 @@ class Keithley2700VISADriver:
         """
         print("Init hardware")
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
-        self._instr = rm.open_resource(rsrc_name)
-        self._instr.timeout = 10000
 
         # Termination character
         termination_dictionary = {'CR':'\r','LF':'\n','CRLF':'\r\n','LFCR':'\n\r'}
-        self._instr.write_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
-        self._instr.read_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
+        self._instr = rm.open_resource(rsrc_name,
+                                       write_termination = termination_dictionary.get(K_config('INSTRUMENT').get('termination').upper()),
+                                       read_termination = termination_dictionary.get(K_config('INSTRUMENT').get('termination').upper())
+                                       )
+        self._instr.timeout = 10000
 
         # Non-amps modules
         self.non_amp_module = False
         non_amp_modules_list = [7701,7703,7706,7707,7708,7709]
-        if k2700config('MODULE','module_name') in non_amp_modules_list:
+        if K_config('MODULE','module_name') in non_amp_modules_list:
             self.non_amp_module = True
 
         # Channels & modes attributes
@@ -41,6 +43,12 @@ class Keithley2700VISADriver:
         self.sample_count_1 = False
         self.reading_scan_list = False
         self.current_mode = ''
+
+    def init_hardware(self, rsrc_name, pyvisa_backend='@ivi'):
+        """Initialize the selected VISA resource"""
+        rm = visa.highlevel.ResourceManager(pyvisa_backend)
+        self._instr = rm.open_resource(rsrc_name)
+        self._instr.timeout = 10000
 
     def configuration_sequence(self):
         """Configure each channel selected by the user
@@ -51,30 +59,30 @@ class Keithley2700VISADriver:
         :raises ValueError: Channel not correctly defined, it should at least contain a key called "mode"
         """
         print('\n********** CONFIGURATION SEQUENCE INITIALIZED **********')
-        print('Acquisition card = ', k2700config('MODULE','module_name'))
+        print('Acquisition card = ', K_config('MODULE','module_name'))
 
         self.reset()
         self.clear_buffer()
         channels = ''
 
         # The following loop set up each channel in the config file
-        for key in k2700config('CHANNELS').keys():
+        for key in K_config('CHANNELS').keys():
 
             # Handling user mistakes if the channels configuration section is not correctly set up
-            if not type(k2700config('CHANNELS',key))==dict:
+            if not type(K_config('CHANNELS',key))==dict:
                 print("Channel %s not correctly defined, must be a dictionary" % key)
                 continue
-            if not k2700config('CHANNELS',key):
+            if not K_config('CHANNELS',key):
                 continue
-            if not "mode" in k2700config('CHANNELS',key):
+            if not "mode" in K_config('CHANNELS',key):
                 print("Channel %s not fully defined, 'mode' is missing" % key)
                 continue
-            if k2700config('CHANNELS',key).get('mode').upper() not in self.modes_channels_dict.keys():
+            if K_config('CHANNELS',key).get('mode').upper() not in self.modes_channels_dict.keys():
                 print("Channel %s not correctly defined, mode not recognized" % key)
                 continue
 
             # Channel mode
-            mode = k2700config('CHANNELS',key).get('mode').upper()
+            mode = K_config('CHANNELS',key).get('mode').upper()
             self.modes_channels_dict[mode].append(int(key))
             channel = '(@' + key + ')'
             channels += key + ","
@@ -82,36 +90,36 @@ class Keithley2700VISADriver:
             self._instr.write(cmd)
 
             # Config
-            if 'range' in k2700config('CHANNELS',key).keys():
-                range = k2700config('CHANNELS',key).get('range')
+            if 'range' in K_config('CHANNELS',key).keys():
+                range = K_config('CHANNELS',key).get('range')
                 if 'autorange' in str(range):
                     self._instr.write(mode + ':RANG:AUTO ')
                 else:
                     self._instr.write(mode + ':RANG ' + str(range))
                     
-            if 'resolution' in k2700config('CHANNELS',key).keys():
-                resolution = k2700config('CHANNELS',key).get('resolution')
+            if 'resolution' in K_config('CHANNELS',key).keys():
+                resolution = K_config('CHANNELS',key).get('resolution')
                 self._instr.write(mode + ':DIG ' + str(resolution))
 
-            if 'nplc' in k2700config('CHANNELS',key).keys():
-                nplc = k2700config('CHANNELS',key).get('nplc')
+            if 'nplc' in K_config('CHANNELS',key).keys():
+                nplc = K_config('CHANNELS',key).get('nplc')
                 self._instr.write(mode + ':NPLC ' + str(nplc))
 
             if "TEMP" in mode:
-                transducer = k2700config('CHANNELS',key).get('transducer').upper()
+                transducer = K_config('CHANNELS',key).get('transducer').upper()
                 if "TC" in transducer:
-                    tc_type = k2700config('CHANNELS',key).get('type').upper()
-                    ref_junction = k2700config('CHANNELS',key).get('ref_junction').upper()
+                    tc_type = K_config('CHANNELS',key).get('type').upper()
+                    ref_junction = K_config('CHANNELS',key).get('ref_junction').upper()
                     self.mode_temp_tc(channel,transducer,tc_type,ref_junction)
                 elif "THER":
-                    ther_type = k2700config('CHANNELS',key).get('type').upper()
+                    ther_type = K_config('CHANNELS',key).get('type').upper()
                     self.mode_temp_ther(channel,transducer,ther_type)
                 elif "FRTD":
-                    frtd_type = k2700config('CHANNELS',key).get('type').upper()
+                    frtd_type = K_config('CHANNELS',key).get('type').upper()
                     self.mode_temp_frtd(channel,transducer,frtd_type)
 
             # Console info
-            print('Channel %s \n %s' % (key,k2700config('CHANNELS',key)))
+            print('Channel %s \n %s' % (key,K_config('CHANNELS',key)))
 
             # Timeout update for long measurement modes such as voltage AC
             if "AC" in mode:
@@ -327,23 +335,31 @@ class Keithley2700VISADriver:
         command = input('Enter here a command you want to send directly to the Keithley [if None, press enter]: ')
         if command != '':
             if command[-1] == "?":
-                print(k2700._instr.query(command))
+                print(self._instr.query(command))
             else:
-                k2700._instr.write(command)
+                self._instr.write(command)
             command = self.user_command()
 
 if __name__ == "__main__":
     try:
         print("In main")
 
-        rm = visa.ResourceManager()
-        rm.list_resources()
+        # K2701 Instance of KeithleyVISADriver class
+        rm = visa.ResourceManager("@ivi")
+        print("list resources",rm.list_resources())
 
-        # Create an instance of the Keithley2700VISADriver class
-        k2700 = Keithley2700VISADriver("ASRL1::INSTR")
+        k2701 = rm.open_resource("TCPIP::192.168.40.41::1394::SOCKET", 
+                                 write_termination = '\n',
+                                 read_termination='\n')
+
+        k2701.timeout = 1000
+        print(k2701.query("*IDN?"))
+
+        # K2700 Instance of KeithleyVISADriver class
+        k2700 = KeithleyVISADriver("ASRL1::INSTR")
 
         print("IDN?")
-        print(k2700.get_idn())
+        idn = k2700.get_idn()
         
         k2700.reset()
         k2700.configuration_sequence()

@@ -9,7 +9,7 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, como
 from pymodaq.utils.parameter import Parameter, ParameterTree
 
 from pymodaq_plugins_keithley2700 import config as k2700config
-from ...hardware.keithley2700_VISADriver import Keithley2700VISADriver as Keithley2700
+from ...hardware import Keithley2700VISADriver as Keithley2700
 
 class DAQ_1DViewer_Keithley2700(DAQ_Viewer_base):
     """ Keithley 2700 plugin class for a OD viewer.

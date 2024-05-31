@@ -1,10 +1,10 @@
 ## To modify by developper(s) of the plugin
 
 [plugin-info]
-SHORT_PLUGIN_NAME = 'keithley2700'
+SHORT_PLUGIN_NAME = 'keithley'
 
-package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_keithley2700' #to modify
-description = 'PyMoDAQ plugin for Keithley 2700 Multimeter/Switch System'
+package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_keithley' #to modify
+description = 'PyMoDAQ plugin for Keithley 27XX Multimeter/Switch System'
 
 author = 'Sébastien Guerrero'
 author-email = 'sebastien.guerrero@insa-lyon.fr'

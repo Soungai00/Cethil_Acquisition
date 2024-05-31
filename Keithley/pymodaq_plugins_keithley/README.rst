@@ -1,5 +1,5 @@
-pymodaq_plugins_keithley2700
-############################
+pymodaq_plugins_keithley
+########################
 
 .. the following must be adapted to your developed package, links to pypi, github  description...
 
