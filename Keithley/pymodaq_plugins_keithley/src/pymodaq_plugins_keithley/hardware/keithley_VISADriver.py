@@ -1,6 +1,6 @@
 import numpy as np
 import pyvisa as visa
-from pymodaq_plugins_keithley import config_k2700 as K_config
+from pymodaq_plugins_keithley import config_k2700
 from pymodaq_plugins_keithley import config_k2701
 
 class KeithleyVISADriver:
@@ -10,45 +10,57 @@ class KeithleyVISADriver:
     Please refer to the instrument reference manual available at:
     https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf
     """
+    # Configurations for Keithley instruments currently supported
+    all_config = {"2700":config_k2700, "2701":config_k2701}
+    K_config = None
 
-    def __init__(self, rsrc_name, pyvisa_backend='@ivi'):
+    # Non-amps modules
+    non_amp_module = False
+    non_amp_modules_list = [7701,7703,7706,7707,7708,7709]
+
+    # Channels & modes attributes
+    channels_scanlist = ''
+    modes_channels_dict = {'VOLT:DC':[],'VOLT:AC':[],'CURR:DC':[],'CURR:AC':[],'RES':[],'FRES':[],'FREQ':[],'TEMP':[]}
+    sample_count_1 = False
+    reading_scan_list = False
+    current_mode = ''
+
+    def __init__(self, rsrc_name):
         """Initialize KeithleyVISADriver class
 
         :param rsrc_name: VISA Resource name
         :type rsrc_name: string
+        """
+        print("Init")
+        self.rsrc_name = rsrc_name
 
+    def init_hardware(self, pyvisa_backend='@ivi'):
+        """Initialize the selected VISA resource
+        
         :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
         :type pyvisa_backend: string
         """
         print("Init hardware")
-        rm = visa.highlevel.ResourceManager(pyvisa_backend)
 
-        # Termination character
-        termination_dictionary = {'CR':'\r','LF':'\n','CRLF':'\r\n','LFCR':'\n\r'}
-        self._instr = rm.open_resource(rsrc_name,
-                                       write_termination = termination_dictionary.get(K_config('INSTRUMENT').get('termination').upper()),
-                                       read_termination = termination_dictionary.get(K_config('INSTRUMENT').get('termination').upper())
+        # Open connexion with instrument
+        rm = visa.highlevel.ResourceManager(pyvisa_backend)
+        self._instr = rm.open_resource(self.rsrc_name,
+                                       write_termination = "\n",
+                                       read_termination = "\n"
                                        )
         self._instr.timeout = 10000
 
-        # Non-amps modules
-        self.non_amp_module = False
-        non_amp_modules_list = [7701,7703,7706,7707,7708,7709]
-        if K_config('MODULE','module_name') in non_amp_modules_list:
+        # Check configuration
+        model = self.get_idn()[32:36]
+        if not model in self.all_config.keys():
+            print("This Keithley instrument model is not supported")
+        else:
+            self.K_config = self.all_config.get(model)
+
+        print("K_config :",self.K_config)
+
+        if self.K_config('MODULE','module_name') in self.non_amp_modules_list:
             self.non_amp_module = True
-
-        # Channels & modes attributes
-        self.channels_scanlist = ''
-        self.modes_channels_dict = {'VOLT:DC':[],'VOLT:AC':[],'CURR:DC':[],'CURR:AC':[],'RES':[],'FRES':[],'FREQ':[],'TEMP':[]}
-        self.sample_count_1 = False
-        self.reading_scan_list = False
-        self.current_mode = ''
-
-    def init_hardware(self, rsrc_name, pyvisa_backend='@ivi'):
-        """Initialize the selected VISA resource"""
-        rm = visa.highlevel.ResourceManager(pyvisa_backend)
-        self._instr = rm.open_resource(rsrc_name)
-        self._instr.timeout = 10000
 
     def configuration_sequence(self):
         """Configure each channel selected by the user
@@ -59,30 +71,30 @@ class KeithleyVISADriver:
         :raises ValueError: Channel not correctly defined, it should at least contain a key called "mode"
         """
         print('\n********** CONFIGURATION SEQUENCE INITIALIZED **********')
-        print('Acquisition card = ', K_config('MODULE','module_name'))
+        print('Acquisition card = ', self.K_config('MODULE','module_name'))
 
         self.reset()
         self.clear_buffer()
         channels = ''
 
         # The following loop set up each channel in the config file
-        for key in K_config('CHANNELS').keys():
+        for key in self.K_config('CHANNELS').keys():
 
             # Handling user mistakes if the channels configuration section is not correctly set up
-            if not type(K_config('CHANNELS',key))==dict:
+            if not type(self.K_config('CHANNELS',key))==dict:
                 print("Channel %s not correctly defined, must be a dictionary" % key)
                 continue
-            if not K_config('CHANNELS',key):
+            if not self.K_config('CHANNELS',key):
                 continue
-            if not "mode" in K_config('CHANNELS',key):
+            if not "mode" in self.K_config('CHANNELS',key):
                 print("Channel %s not fully defined, 'mode' is missing" % key)
                 continue
-            if K_config('CHANNELS',key).get('mode').upper() not in self.modes_channels_dict.keys():
+            if self.K_config('CHANNELS',key).get('mode').upper() not in self.modes_channels_dict.keys():
                 print("Channel %s not correctly defined, mode not recognized" % key)
                 continue
 
             # Channel mode
-            mode = K_config('CHANNELS',key).get('mode').upper()
+            mode = self.K_config('CHANNELS',key).get('mode').upper()
             self.modes_channels_dict[mode].append(int(key))
             channel = '(@' + key + ')'
             channels += key + ","
@@ -90,36 +102,36 @@ class KeithleyVISADriver:
             self._instr.write(cmd)
 
             # Config
-            if 'range' in K_config('CHANNELS',key).keys():
-                range = K_config('CHANNELS',key).get('range')
+            if 'range' in self.K_config('CHANNELS',key).keys():
+                range = self.K_config('CHANNELS',key).get('range')
                 if 'autorange' in str(range):
                     self._instr.write(mode + ':RANG:AUTO ')
                 else:
                     self._instr.write(mode + ':RANG ' + str(range))
                     
-            if 'resolution' in K_config('CHANNELS',key).keys():
-                resolution = K_config('CHANNELS',key).get('resolution')
+            if 'resolution' in self.K_config('CHANNELS',key).keys():
+                resolution = self.K_config('CHANNELS',key).get('resolution')
                 self._instr.write(mode + ':DIG ' + str(resolution))
 
-            if 'nplc' in K_config('CHANNELS',key).keys():
-                nplc = K_config('CHANNELS',key).get('nplc')
+            if 'nplc' in self.K_config('CHANNELS',key).keys():
+                nplc = self.K_config('CHANNELS',key).get('nplc')
                 self._instr.write(mode + ':NPLC ' + str(nplc))
 
             if "TEMP" in mode:
-                transducer = K_config('CHANNELS',key).get('transducer').upper()
+                transducer = self.K_config('CHANNELS',key).get('transducer').upper()
                 if "TC" in transducer:
-                    tc_type = K_config('CHANNELS',key).get('type').upper()
-                    ref_junction = K_config('CHANNELS',key).get('ref_junction').upper()
+                    tc_type = self.K_config('CHANNELS',key).get('type').upper()
+                    ref_junction = self.K_config('CHANNELS',key).get('ref_junction').upper()
                     self.mode_temp_tc(channel,transducer,tc_type,ref_junction)
                 elif "THER":
-                    ther_type = K_config('CHANNELS',key).get('type').upper()
+                    ther_type = self.K_config('CHANNELS',key).get('type').upper()
                     self.mode_temp_ther(channel,transducer,ther_type)
                 elif "FRTD":
-                    frtd_type = K_config('CHANNELS',key).get('type').upper()
+                    frtd_type = self.K_config('CHANNELS',key).get('type').upper()
                     self.mode_temp_frtd(channel,transducer,frtd_type)
 
             # Console info
-            print('Channel %s \n %s' % (key,K_config('CHANNELS',key)))
+            print('Channel %s \n %s' % (key,self.K_config('CHANNELS',key)))
 
             # Timeout update for long measurement modes such as voltage AC
             if "AC" in mode:
@@ -344,46 +356,49 @@ if __name__ == "__main__":
     try:
         print("In main")
 
-        # K2701 Instance of KeithleyVISADriver class
         rm = visa.ResourceManager("@ivi")
         print("list resources",rm.list_resources())
 
-        k2701 = rm.open_resource("TCPIP::192.168.40.41::1394::SOCKET", 
-                                 write_termination = '\n',
-                                 read_termination='\n')
+        # K2701 Instance of KeithleyVISADriver class
+        k2701 = KeithleyVISADriver("TCPIP::192.168.40.41::1394::SOCKET")
+        k2701.init_hardware()
 
-        k2701.timeout = 1000
-        print(k2701.query("*IDN?"))
+        print("IDN?")
+        print(k2701.get_idn)
+
+        k2701.close()
 
         # K2700 Instance of KeithleyVISADriver class
         k2700 = KeithleyVISADriver("ASRL1::INSTR")
+        k2700.init_hardware()
 
         print("IDN?")
         idn = k2700.get_idn()
         
-        k2700.reset()
-        k2700.configuration_sequence()
+        # k2700.reset()
+        # k2700.configuration_sequence()
 
-        # Daq_viewer simulation first run
-        k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
-        print('Manual scan example: >init >*trg >trac:data?')
-        k2700.user_command()
+        # # Daq_viewer simulation first run
+        # k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
+        # print('Manual scan example: >init >*trg >trac:data?')
+        # k2700.user_command()
 
-        for i in range(2):
-            print(k2700.data())
-        print(k2700.data())
+        # for i in range(2):
+        #     print(k2700.data())
+        # print(k2700.data())
 
-        # Daq_viewer simulation change mode
-        k2700.user_command()
-        k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
-        print('Manual scan example: >init >*trg >trac:data?')
+        # # Daq_viewer simulation change mode
+        # k2700.user_command()
+        # k2700.set_mode(str(input('Enter which mode you want to scan [scan_scan_list, scan_volt:dc, scan_r2w, scan_temp...]:')))
+        # print('Manual scan example: >init >*trg >trac:data?')
 
-        for i in range(2):
-            print(k2700.data())
-        print(k2700.data())
+        # for i in range(2):
+        #     print(k2700.data())
+        # print(k2700.data())
 
-        k2700.clear_buffer()
+        # k2700.clear_buffer()
         k2700.close()
+
         print("Out")
 
     except Exception as e:
