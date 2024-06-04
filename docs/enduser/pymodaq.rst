@@ -11,12 +11,11 @@ https://www.anaconda.com/
 
 In the same way, it is recommended to create a dedicated environment to install Pymodaq and work with.
 
-To do so, either open an Anaconda3 prompt directly or open a command prompt and run::
+To do so, you can either create one from an environment.yml file which contains all the needed dependencies (you can find it in the plugin section) or create it from scratch.
 
-    $ C:\Anaconda3\condabin\activate.bat
+Open a command prompt and run the following sequence::
 
-Then, run the following sequence::
-
+    $ C:\Anaconda3\condabin\activate.bat (skip this line if you opened an Anaconda3 prompt directly)
 	$ conda create --name Pymodaq_ENV_NAME python=3.8
 	$ conda deactivate
 	$ conda activate Pymodaq_ENV_NAME

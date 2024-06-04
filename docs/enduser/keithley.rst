@@ -1,4 +1,4 @@
-Keithley 2700 Multimeter
+Keithley 27XX Multimeter
 ========================
 
 This section focus on the Pymodaq keithley2700 plugin which is designed to interact with a Keithley 2700 Multimeter/Switch System.
@@ -8,14 +8,21 @@ It enables you to remotly control the instrument and acquire data (e.g. voltages
 Plugin installation
 *******************
 
-The pymodaq_plugin_keithley2700 package is available `here`_:
+To install the plugin for your instrument, activate your Pymodaq_ENV_NAME and install the pyvisa librarie::
+        $ pip install pyvisa
+        
+Or create your environment from the following `.yml`_:
 
-.. _here: https://git-cethil.insa-lyon.fr/instrumentation/Cethil-Acquisition/-/tree/master/Keithley2700/pymodaq_plugins_keithley2700?ref_type=heads
+.. _.yml: 
+    
+The pymodaq_plugin_keithley package is available `here`_:
+
+.. _here: https://git-cethil.insa-lyon.fr/instrumentation/Cethil-Acquisition/-/tree/master/Keithley/pymodaq_plugins_keithley?ref_type=heads
 
 Once downloaded, extract the package in the local repository you want, and install it::
 
-    $ pip install pymodaq_plugin_keithley2700
-    $ pip install pyvisa
+    $ pip install pymodaq_plugin_keithley
+
 
 .. note::
     The plugin requires the python package pyvisa to cummunicate with the instrument.
