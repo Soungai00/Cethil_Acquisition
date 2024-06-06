@@ -1,8 +1,8 @@
 title = "Config file for the keithley2700 plugin using a 7706 acquisition card"
+termination_character = "Keithley must be set to LF"
 
 [INSTRUMENT]
 rsrc_name = ""
-termination = ""
 panel = ""
 
 [MODULE]

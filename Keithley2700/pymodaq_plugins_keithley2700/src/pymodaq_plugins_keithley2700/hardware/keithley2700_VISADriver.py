@@ -19,14 +19,14 @@ class Keithley2700VISADriver:
         :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
         :type pyvisa_backend: string
         """
+        # Open connexion with instrument
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
-        self._instr = rm.open_resource(rsrc_name)
-        self._instr.timeout = 10000
+        self._instr = rm.open_resource(rsrc_name,
+                                       write_termination = "\n",
+                                       read_termination = "\n"
+                                       )
 
-        # Termination character
-        termination_dictionary = {'CR':'\r','LF':'\n','CRLF':'\r\n','LFCR':'\n\r'}
-        self._instr.write_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
-        self._instr.read_termination = termination_dictionary.get(k2700config('INSTRUMENT').get('termination').upper())
+        self._instr.timeout = 10000
 
         # Non-amps modules
         self.non_amp_module = False
@@ -335,7 +335,10 @@ if __name__ == "__main__":
     try:
         print("In main")
 
-        k2700 = Keithley2700VISADriver("ASRL1::INSTR")
+        rm = visa.highlevel.ResourceManager("@ivi")
+        print(rm.list_resources())
+
+        k2700 = Keithley2700VISADriver("ASRL3::INSTR")
         print("IDN?")
         print(k2700.get_idn())
         
