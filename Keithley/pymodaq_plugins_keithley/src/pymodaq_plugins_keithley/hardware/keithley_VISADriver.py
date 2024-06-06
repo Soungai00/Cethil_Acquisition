@@ -12,6 +12,8 @@ class KeithleyVISADriver:
     """
     # Configurations for Keithley instruments currently supported
     all_config = {"2700":config_k2700, "2701":config_k2701}
+    print("config",config_k2700)
+    print("config rsrcname",config_k2700('INSTRUMENT').get('rsrc_name'))
     K_config = None
 
     # Non-amps modules

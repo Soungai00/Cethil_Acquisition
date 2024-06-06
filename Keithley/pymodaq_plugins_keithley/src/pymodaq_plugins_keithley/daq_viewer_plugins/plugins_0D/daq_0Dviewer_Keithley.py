@@ -7,6 +7,7 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, como
 from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_keithley import config_k2700
+from pymodaq_plugins_keithley import config_k2701
 from ...hardware.keithley_VISADriver import KeithleyVISADriver as Keithley
 
 class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
@@ -29,10 +30,21 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
     :type x_axis: Nonetype
     """
 
+    K_config1 = config_k2700
+    K_config = config_k2701
+
     # Read configuration file
-    rsrc_name = config_k2700('INSTRUMENT').get('rsrc_name')
-    panel = config_k2700('INSTRUMENT').get('panel').upper()
-    channels = config_k2700('CHANNELS').keys()
+    rsrc_name = K_config('INSTRUMENT').get('rsrc_name')
+    panel = K_config('INSTRUMENT').get('panel').upper()
+    channels = K_config('CHANNELS').keys()
+
+    print("config_k2701",config_k2701)
+    print("config_k2700",config_k2700)
+    print("K_config",K_config)
+
+    print("K_config",config_k2700('INSTRUMENT').get('rsrc_name'))
+
+
 
     if panel == 'FRONT':
         print('Panel configuration 0D viewer:',panel)
@@ -94,6 +106,7 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
 
         self.status.update(edict(initialized=False, info="", x_axis=None, y_axis=None, controller=None))
         if self.settings.child(('controller_status')).value() == "Slave":
+            print("ok slave")
             if controller is None: 
                 raise Exception('no controller has been defined externally while this detector is a slave one')
             else:
@@ -105,7 +118,8 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
                 raise Exception('No controller could be defined because an error occurred\
                  while connecting to the instrument. Error: {}'.format(str(e)))
         
-        # Keithley identification
+        # Keithley initialization & identification
+        self.controller.init_hardware()
         txt = self.controller.get_idn()
         self.settings.child('Keithley_Params','ID').setValue(txt)
 
