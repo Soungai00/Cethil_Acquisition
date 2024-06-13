@@ -1,8 +1,13 @@
 Keithley 27XX Multimeter
 ========================
 
-This section focus on the Pymodaq keithley2700 plugin which is designed to interact with a Keithley 2700 Multimeter/Switch System.
-It enables you to remotly control the instrument and acquire data (e.g. voltages,temperatures..)
+This section focus on the Pymodaq keithley plugin. It is designed to interact with instruments of type Keithley Multimeter/Switch System and enables you to remotly control the instrument and acquire data (e.g. voltages,temperatures..)
+
+For now, the plugin uses control modules which support only Keithley 27XX, thus you can find below the links to access supported and tested instruments:
+
+.. line-block::
+    https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf
+    https://download.tek.com/manual/2701-900-01G_Feb_2016.pdf
 
 *******************
 Plugin installation
@@ -37,6 +42,8 @@ Hardware
 - Connect the Keithley power supply cable
 - Connect the Keithley to the PC (RS232 connexion is the only one supported at this point, later will be implemented GPIB/TCIP)
 - Power on the Keithley
+
+For more details, refer to the documentations. 
 
 Software
 ********

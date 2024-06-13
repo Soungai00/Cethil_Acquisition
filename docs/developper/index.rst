@@ -11,3 +11,7 @@ To install a plugin in developper mode, run::
 
 It enables you to directly apply your code modification and make pymodaq use your plugin as if it were installed in your environment dependencies.
 
+To include your modifications in the documentation, you will need to install sphinx::
+
+    $ conda install sphinx
+    $ pip install sphinx_rtd_theme

@@ -1,5 +1,5 @@
-pymodaq_plugins_keithley2700
-============================
+pymodaq_plugins_keithley
+========================
 
 .. toctree::
    :maxdepth: 4

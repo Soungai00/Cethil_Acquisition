@@ -21,6 +21,9 @@ Open a command prompt and run the following sequence::
 	$ conda activate Pymodaq_ENV_NAME
 	$ conda install pyqt
 	$ pip install pymodaq==4.0.11
+    $ pip install sqlalchemy
+    $ pip install sqlalchemy_utils
+    $ pip install psycopg2
 
 .. note::
     To install specific version, run::
@@ -31,7 +34,7 @@ Open a command prompt and run the following sequence::
     Python 3.8 and Pymodaq 4.0.11 are the ones used during the tests.
 
 .. warning::
-    Pymodaq requires the python package pyqt, don't forget it !
+    Pymodaq requires each dependencies to work or make some extensions work, don't forget to pip install them !
 
 Once Pymodaq installed, you will now need to install plugins according to the instrument you use.
 You can find the list of all available plugins running the plugin manager::
