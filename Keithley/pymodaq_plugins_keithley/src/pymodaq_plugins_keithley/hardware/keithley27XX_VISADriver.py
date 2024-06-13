@@ -190,12 +190,14 @@ class Keithley27XXVISADriver:
         """
         if self.sample_count_1 == False:
             print(self.sample_count_1)
+            # Initiate scan
+            self._instr.write("INIT")
             # Trigger scan
             self._instr.write("*TRG")
             # Get data (equivalent to TRAC:DATA? from buffer)
             str_answer = self._instr.query("FETCH?")
         else:
-            str_answer = self._instr.query("READ?")
+            str_answer = self._instr.query("FETCH?")
         # Split the instrument answer (MEASUREMENT,TIME,READING COUNT) to create a list
         list_split_answer = str_answer.split(",")
 
@@ -291,7 +293,7 @@ class Keithley27XXVISADriver:
         
         # FRONT panel
         if "SCAN" not in mode:
-            self.initcontoff()
+            self.initconton()
             self.sample_count_1 = True
             self.reading_scan_list = False
             self._instr.write("FUNC '" + mode + "'")
@@ -334,12 +336,18 @@ class Keithley27XXVISADriver:
                 samp_count = 1+channels.count(',')
                 self._instr.write("SAMP:COUN "+str(samp_count))
                 if samp_count == 1:
-                    self.sample_count_1 = True
+                    self.initconton()
                     # Trigger definition
                     self._instr.write("TRIG:SOUR IMM")
                     # Disable scan if currently enabled
                     self._instr.write("ROUT:SCAN:LSEL NONE")
                     self._instr.write("ROUT:CLOS " + channels)
+                    
+                    self._instr.write("FUNC '" + mode + "'")
+                    print("rear sample count", self.sample_count_1)
+                    if self.sample_count_1 != True:
+                        self.sample_count_1 = True
+                    self.reading_scan_list = False
                 else:
                     self.sample_count_1 = False
                     # Trigger definition
