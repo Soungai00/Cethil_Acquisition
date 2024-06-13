@@ -1,14 +1,20 @@
-title = "Config file for the keithley plugin using a 7708 acquisition card"
-termination_character = "Keithley must be set to LF"
-
 [INSTRUMENT]
+# Instrument in wich is plugged the 7708 switching module
+# (e.g.: "ASRL1::INSTR", "TCPIP::192.168.01.01::1394::SOCKET")
 rsrc_name = ""
-panel = ""
 
 [MODULE]
 module_name = 7708
 
 [CHANNELS]
+## Thermocouple config example
+# [CHANNELS.101]
+# mode = "temp"
+# transducer = "tc"
+# type = "K"
+# ref_junction = "int"
+# resolution = 6
+# nplc = 5
 101 = {}
 102 = {}
 103 = {}
