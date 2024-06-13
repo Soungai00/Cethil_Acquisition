@@ -1,4 +1,4 @@
-import datetime
+import os
 import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand
@@ -6,11 +6,10 @@ from pymodaq.utils.data import DataFromPlugins, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter import Parameter
 
-from pymodaq_plugins_keithley import config_k2700
-from pymodaq_plugins_keithley import config_k2701
-from ...hardware.keithley_VISADriver import KeithleyVISADriver as Keithley
+import pymodaq_plugins_keithley as plugin
+from pymodaq_plugins_keithley.hardware.keithley27XX_VISADriver import Keithley27XXVISADriver as Keithley
 
-class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
+class DAQ_0DViewer_Keithley27XX(DAQ_Viewer_base):
     """ Keithley plugin class for a OD viewer.
     
     This object inherits all functionalities to communicate with PyMoDAQ’s DAQ_Viewer module through inheritance via
@@ -29,26 +28,28 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
     :param x_axis: Daq_0Dviewer doesn't have axis, data acquired sample by sample
     :type x_axis: Nonetype
     """
+    all_config = {}
+    current_config = None
 
-    K_config1 = config_k2700
-    K_config = config_k2701
+    # Configurations for supported Keithley instruments
+    toml_keithley = [f for f in os.listdir('resources/') if "keithley.toml" in f]
+    all_config["base"] = plugin.config_keithley
+
+    # Configurations for supported Keithley switching modules
+    toml_modules = [f for f in os.listdir('resources/') if "module" in f and ".toml" in f]
+    for file in toml_modules:
+        exec("all_config[" + str(file[-9:-5]) + "] = plugin.config_k" + str(file[-9:-5]))
+        if current_config == None:
+            current_config = all_config.get(int(file[-9:-5]))
 
     # Read configuration file
-    rsrc_name = K_config('INSTRUMENT').get('rsrc_name')
-    panel = K_config('INSTRUMENT').get('panel').upper()
-    channels = K_config('CHANNELS').keys()
-
-    print("config_k2701",config_k2701)
-    print("config_k2700",config_k2700)
-    print("K_config",K_config)
-
-    print("K_config",config_k2700('INSTRUMENT').get('rsrc_name'))
-
-
+    panel = all_config["base"]('INSTRUMENT').get('panel').upper()
+    resources_list = [rsrc("INSTRUMENT").get("rsrc_name") for key,rsrc in list(all_config.items()) if key != "base"]
+    print("resources list = ",resources_list)
 
     if panel == 'FRONT':
-        print('Panel configuration 0D viewer:',panel)
         params = comon_parameters+[
+            {'title': 'Resources', 'name': 'resources', 'type': 'list', 'limits': resources_list, 'value': resources_list[0]},
             {'title': 'Keithley',  'name': 'Keithley_Params', 'type': 'group', 'children': [
                 {'title': 'ID', 'name': 'ID', 'type': 'text', 'value': ''},
                 {'title': 'FRONT panel', 'name': 'frontpanel', 'type': 'group', 'children': [
@@ -56,8 +57,8 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
             ]}
         ]
     elif panel == 'REAR':
-        print('Panel configuration 0D viewer:',panel)
         params = comon_parameters+[
+            {'title': 'Resources', 'name': 'resources', 'type': 'list', 'limits': resources_list, 'value': resources_list[0]},
             {'title': 'Keithley',  'name': 'Keithley_Params', 'type': 'group', 'children': [
                 {'title': 'ID', 'name': 'ID', 'type': 'text', 'value': ''},
                 {'title': 'REAR panel', 'name': 'rearpanel', 'type': 'group', 'children': [
@@ -66,16 +67,12 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
             ]}
         ]
     
-    # Remove current measurement from parameters when non-amps modules
-    if Keithley(rsrc_name).non_amp_module == True:
-        params[1]['children'][1]['children'][0]['limits'] = [i for i in params[1]['children'][1]['children'][0]['limits'] if not 'CURR:AC' in i and not 'CURR:DC' in i]
-
     def __init__(self, parent=None, params_state=None):
-        super(DAQ_0DViewer_Keithley, self).__init__(parent, params_state)
-        self.ini_attributes()
+        super(DAQ_0DViewer_Keithley27XX, self).__init__(parent, params_state)
 
     def ini_attributes(self):
         """Attributes init when DAQ_0DViewer_Keithley class is instancied"""
+        print("Panel configuration 0D_viewer: ",self.panel)
         self.channels_in_selected_mode = None
 
     def commit_settings(self, param: Parameter):
@@ -86,10 +83,10 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
         if 'mode' in param.name():
             """Updates the newly selected measurement mode"""
             # Read the configuration file to determine which mode to use and send corresponding instruction to driver
-            if DAQ_0DViewer_Keithley.panel == 'FRONT':
+            if self.panel == 'FRONT':
                 value = param.value()
                 self.controller.set_mode(value)
-            elif DAQ_0DViewer_Keithley.panel == 'REAR':
+            elif self.panel == 'REAR':
                 value = 'SCAN_'+param.value()
                 self.channels_in_selected_mode = self.controller.set_mode(value)
 
@@ -113,22 +110,33 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
                 self.controller = controller
         else:
             try:
-                self.controller = Keithley(DAQ_0DViewer_Keithley.rsrc_name)
+                # Select the resource to connect with and load the dedicated configuration
+                self.resource = self.settings["resources"]
+                for config in self.all_config:
+                    if self.all_config[config]("INSTRUMENT").get("rsrc_name") == self.settings["resources"]:
+                        self.current_config = self.all_config[config]
+                self.rsrc_name = self.current_config("INSTRUMENT").get("rsrc_name")
+                self.channels = self.current_config('CHANNELS').keys()
+                self.controller = Keithley(self.rsrc_name)
             except Exception as e:
                 raise Exception('No controller could be defined because an error occurred\
                  while connecting to the instrument. Error: {}'.format(str(e)))
-        
+
+        # Remove current measurement from parameters when non-amps modules
+        if Keithley(self.rsrc_name).non_amp_module == True:
+            self.params[1]['children'][1]['children'][0]['limits'] = [i for i in self.params[1]['children'][1]['children'][0]['limits'] if not 'CURR:AC' in i and not 'CURR:DC' in i]
+
         # Keithley initialization & identification
         self.controller.init_hardware()
         txt = self.controller.get_idn()
         self.settings.child('Keithley_Params','ID').setValue(txt)
 
         # Initilize detector communication and set the default value (SCAN_LIST)
-        if DAQ_0DViewer_Keithley.panel == 'FRONT':
+        if self.panel == 'FRONT':
             value = self.settings.child('Keithley_Params', 'frontpanel', 'frontmode').value()
             self.controller.current_mode = value
             self.controller.set_mode(value)
-        elif DAQ_0DViewer_Keithley.panel == 'REAR':
+        elif self.panel == 'REAR':
             self.controller.configuration_sequence()
             value = 'SCAN_'+self.settings.child('Keithley_Params', 'rearpanel', 'rearmode').value()
             self.channels_in_selected_mode = self.controller.set_mode(value)
@@ -156,12 +164,10 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
         :type kwargs: dict
         """
         # ACQUISITION OF DATA
-        if DAQ_0DViewer_Keithley.panel == 'FRONT':
+        if self.panel == 'FRONT':
             data_tot = self.controller.data()
             data_measurement = data_tot[1]
-            print('Data tot :',data_tot)
-            print('Data measurement :',data_measurement)
-        elif DAQ_0DViewer_Keithley.panel == 'REAR':
+        elif self.panel == 'REAR':
             print('current mode', self.controller.current_mode)
             channels_in_selected_mode = self.channels_in_selected_mode[1:-1].replace('@','')
             Chan_to_plot=[]
@@ -185,9 +191,9 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
         # When reading the scan_list, data are displayed and exported grouped by mode
         if self.controller.reading_scan_list == False:
             Label = dict_label_mode[self.controller.current_mode]
-            if DAQ_0DViewer_Keithley.panel == 'FRONT':
+            if self.panel == 'FRONT':
                 labels= 'Front input'
-            elif DAQ_0DViewer_Keithley.panel == 'REAR':
+            elif self.panel == 'REAR':
                 labels=[Chan_to_plot[i] for i in range(len(Chan_to_plot))]
             data = DataToExport(name='keithley',
                                             data=[DataFromPlugins(name=Label,
@@ -197,18 +203,16 @@ class DAQ_0DViewer_Keithley(DAQ_Viewer_base):
             
         # Reading only channels configured in the selected mode
         elif self.controller.reading_scan_list == True:
-            print('\n***************** DEBUG IN ********************')
-            print('Modes + channels: ', self.controller.modes_channels_dict)
-            print(' Channels + value ', dict_chan_value)
-            for key in self.controller.modes_channels_dict.keys():
-                if self.controller.modes_channels_dict.get(key) != []:
-                    print('key = ',key)
-                    for chan in self.controller.modes_channels_dict.get(key):
-                        print('chan = ', chan)
-                        print('str chan ', str(chan))
-                        print(' dict chan value[str(chan)]', dict_chan_value[str(chan)])
-                        print(' dict chan value.get(chan)', dict_chan_value.get(chan))
-            print('***************** DEBUG OUT ********************\n')
+            # print('\n***************** DEBUG IN ********************')
+            # print('Modes + channels: ', self.controller.modes_channels_dict)
+            # print(' Channels + value ', dict_chan_value)
+            # for key in self.controller.modes_channels_dict.keys():
+            #     if self.controller.modes_channels_dict.get(key) != []:
+            #         print('key = ',key)
+            #         for chan in self.controller.modes_channels_dict.get(key):
+            #             print('chan = ', chan)
+            #             print(' dict chan value[str(chan)]', dict_chan_value[str(chan)])
+            # print('***************** DEBUG OUT ********************\n')
 
             data = DataToExport(name='keithley',
                                 data=[DataFromPlugins(name=dict_label_mode[key],

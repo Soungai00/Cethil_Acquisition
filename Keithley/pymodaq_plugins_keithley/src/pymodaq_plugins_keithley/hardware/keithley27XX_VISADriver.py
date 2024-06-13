@@ -1,19 +1,28 @@
+import os
 import numpy as np
 import pyvisa as visa
-from pymodaq_plugins_keithley import config_k2700
-from pymodaq_plugins_keithley import config_k2701
+import pymodaq_plugins_keithley as plugin
 
-class KeithleyVISADriver:
+class Keithley27XXVISADriver:
     """VISA class driver for the Keithley 27XX Multimeter/Switch System
 
     This class relies on pyvisa module to communicate with the instrument via VISA protocol.
     Please refer to the instrument reference manual available at:
     https://download.tek.com/manual/2700-900-01K_Feb_2016.pdf
+    https://download.tek.com/manual/2701-900-01G_Feb_2016.pdf
     """
-    # Configurations for Keithley instruments currently supported
-    all_config = {"2700":config_k2700, "2701":config_k2701}
-    print("config",config_k2700)
-    print("config rsrcname",config_k2700('INSTRUMENT').get('rsrc_name'))
+    all_config = {}
+
+    # Configurations for supported Keithley instruments
+    toml_keithley = [f for f in os.listdir('resources/') if "keithley.toml" in f]
+    all_config["base"] = plugin.config_keithley
+
+    # Configurations for supported Keithley switching modules
+    toml_modules = [f for f in os.listdir('resources/') if "module" in f and ".toml" in f]
+    for file in toml_modules:
+        exec("all_config[" + str(file[-9:-5]) + "] = plugin.config_k" + str(file[-9:-5]))
+        print("*** config rsrcname {}: {}" .format(str(file[-9:-5]),all_config.get(int(file[-9:-5]))('INSTRUMENT').get('rsrc_name')))
+    
     K_config = None
 
     # Non-amps modules
@@ -33,7 +42,6 @@ class KeithleyVISADriver:
         :param rsrc_name: VISA Resource name
         :type rsrc_name: string
         """
-        print("Init")
         self.rsrc_name = rsrc_name
 
     def init_hardware(self, pyvisa_backend='@ivi'):
@@ -42,7 +50,7 @@ class KeithleyVISADriver:
         :param pyvisa_backend: Expects a pyvisa backend identifier or a path to the visa backend dll (ref. to pyvisa)
         :type pyvisa_backend: string
         """
-        print("Init hardware")
+        print("Hardware initialized")
 
         # Open connexion with instrument
         rm = visa.highlevel.ResourceManager(pyvisa_backend)
@@ -53,11 +61,14 @@ class KeithleyVISADriver:
         self._instr.timeout = 10000
 
         # Check configuration
-        model = self.get_idn()[32:36]
-        if not model in self.all_config.keys():
-            print("This Keithley instrument model is not supported")
+        model = int(self.get_idn()[32:36])
+        card = int(self.get_card().split(',')[0])
+        if not "27" in str(model):
+            print("Keithley instrument {} model is not supported" .format(model))
+        elif not card in self.all_config.keys():
+            print("Switching module {} is not supported" .format(card))
         else:
-            self.K_config = self.all_config.get(model)
+            self.K_config = self.all_config.get(card)
 
         print("K_config :",self.K_config)
 
@@ -178,8 +189,7 @@ class KeithleyVISADriver:
         - The timestamp of each measurement (numpy array)
         """
         if self.sample_count_1 == False:
-            # Initiate scan
-            self._instr.write("INIT")
+            print(self.sample_count_1)
             # Trigger scan
             self._instr.write("*TRG")
             # Get data (equivalent to TRAC:DATA? from buffer)
@@ -231,6 +241,10 @@ class KeithleyVISADriver:
 
     def define_input(self, input):
         return str(input)
+    
+    def get_card(self):
+        # Query switching module
+        return self._instr.query("*OPT?")
     
     def get_error(self):
         # Ask the keithley to return the last current error
@@ -357,25 +371,25 @@ class KeithleyVISADriver:
 if __name__ == "__main__":
     try:
         print("In main")
-
+        
         rm = visa.ResourceManager("@ivi")
         print("list resources",rm.list_resources())
 
         # K2701 Instance of KeithleyVISADriver class
-        k2701 = KeithleyVISADriver("TCPIP::192.168.40.41::1394::SOCKET")
+        k2701 = Keithley27XXVISADriver("TCPIP::192.168.40.41::1394::SOCKET")
         k2701.init_hardware()
 
         print("IDN?")
-        print(k2701.get_idn)
+        print(k2701.get_idn())
 
         k2701.close()
 
         # K2700 Instance of KeithleyVISADriver class
-        k2700 = KeithleyVISADriver("ASRL1::INSTR")
+        k2700 = Keithley27XXVISADriver("ASRL3::INSTR")
         k2700.init_hardware()
 
         print("IDN?")
-        idn = k2700.get_idn()
+        print(k2700.get_idn())
         
         # k2700.reset()
         # k2700.configuration_sequence()
