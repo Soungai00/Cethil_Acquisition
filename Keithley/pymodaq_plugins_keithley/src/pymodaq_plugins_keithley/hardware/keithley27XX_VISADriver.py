@@ -12,13 +12,14 @@ class Keithley27XXVISADriver:
     https://download.tek.com/manual/2701-900-01G_Feb_2016.pdf
     """
     all_config = {}
+    resources_path = plugin.__path__[0]+"/resources"
 
     # Configurations for supported Keithley instruments
-    toml_keithley = [f for f in os.listdir('resources/') if "keithley.toml" in f]
+    toml_keithley = [f for f in os.listdir(resources_path) if "keithley.toml" in f]
     all_config["base"] = plugin.config_keithley
 
     # Configurations for supported Keithley switching modules
-    toml_modules = [f for f in os.listdir('resources/') if "module" in f and ".toml" in f]
+    toml_modules = [f for f in os.listdir(resources_path) if "module" in f and ".toml" in f]
     for file in toml_modules:
         exec("all_config[" + str(file[-9:-5]) + "] = plugin.config_k" + str(file[-9:-5]))
         print("*** config rsrcname {}: {}" .format(str(file[-9:-5]),all_config.get(int(file[-9:-5]))('INSTRUMENT').get('rsrc_name')))

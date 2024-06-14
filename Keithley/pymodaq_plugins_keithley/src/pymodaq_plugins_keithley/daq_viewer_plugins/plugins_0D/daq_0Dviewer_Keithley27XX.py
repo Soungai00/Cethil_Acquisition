@@ -30,13 +30,14 @@ class DAQ_0DViewer_Keithley27XX(DAQ_Viewer_base):
     """
     all_config = {}
     current_config = None
+    resources_path = plugin.__path__[0]+"/resources"
 
     # Configurations for supported Keithley instruments
-    toml_keithley = [f for f in os.listdir('resources/') if "keithley.toml" in f]
+    toml_keithley = [f for f in os.listdir(resources_path) if "keithley.toml" in f]
     all_config["base"] = plugin.config_keithley
 
     # Configurations for supported Keithley switching modules
-    toml_modules = [f for f in os.listdir('resources/') if "module" in f and ".toml" in f]
+    toml_modules = [f for f in os.listdir(resources_path) if "module" in f and ".toml" in f]
     for file in toml_modules:
         exec("all_config[" + str(file[-9:-5]) + "] = plugin.config_k" + str(file[-9:-5]))
         if current_config == None:
